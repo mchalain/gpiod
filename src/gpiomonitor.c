@@ -14,6 +14,7 @@
 
 #include "log.h"
 #include "gpiomonitor.h"
+#include "exec.h"
 
 typedef int mutex_t;
 #define mutex_lock(mut) do{}while(0)
@@ -179,13 +180,30 @@ static int gpiod_dispatch(gpio_t *gpio, struct gpiod_line_event *event)
 	}
 	return 0;
 }
+static int gpiod_check()
+{
+	gpio_t *gpio = g_gpios;
+	while (gpio != NULL)
+	{
+		struct gpiod_line_event event;
+		int ret = gpiod_line_get_value(gpio->handle);
+		if (ret == 1)
+			event.event_type = GPIOD_LINE_EVENT_RISING_EDGE;
+		else if (ret == 0)
+			event.event_type = GPIOD_LINE_EVENT_FALLING_EDGE;
+		gpiod_dispatch(gpio, &event);
+		gpio = gpio->next;
+	}
+}
 
 int gpiod_monitor()
 {
-	struct pollfd poll_set[5];
+	struct pollfd poll_set[MAX_GPIOS];
 	int numfds = 0;
 
-	numfds = gpiod_setpoll(poll_set, 5);
+	gpiod_check();
+
+	numfds = gpiod_setpoll(poll_set, MAX_GPIOS);
 
 	while(g_run)
 	{

@@ -3,6 +3,10 @@
 
 #include <gpiod.h>
 
+#ifndef MAX_GPIOS
+#define MAX_GPIOS 64
+#endif
+
 typedef void (*handler_t)(void *ctx, int chipid, int line, struct gpiod_line_event *event);
 
 int gpiod_addchip(struct gpiod_chip *handle);
