@@ -4,6 +4,10 @@ gpiod is able to run a script when a gpio event occures. It uses rules' files to
 
 ## build gpiod
 
+"gpiod" depends on:
+ * libgpiod: https://www.kernel.org/pub/software/libs/libgpiod
+ * libconfig: https://github.com/hyperrealm/libconfig
+
 ``` shell
 $ make prefix=/usr sysconfdir=/etc/gpiod defconfig
 $ make
@@ -31,6 +35,7 @@ The script is called with environment variables:
  * GPIO the gpio line
  * CHIP a chip id
  * NAME the gpio name
+
 and with an argument "rising" or "falling"
 
 ``` shell
