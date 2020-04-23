@@ -1,0 +1,43 @@
+#!/bin/sh
+#
+# Starts gpiod.
+#
+
+RUNDIR=/var/run
+SBINDIR=/usr/sbin
+BINDIR=/usr/bin
+
+start() {
+	printf "Starting gpiod: "
+	start-stop-daemon -S -q -p ${RUNDIR}/gpiod.pid --exec ${SBINDIR}/gpiod --
+	[ $? == 0 ] && echo "OK" || echo "FAILED"
+}
+stop() {
+	printf "Stopping gpiod: "
+	if [ -e ${RUNDIR}/gpiod.pid ]; then
+		start-stop-daemon -K -q -p ${RUNDIR}/gpiod.pid
+	fi
+	echo "OK"
+}
+restart() {
+	stop
+	start
+}
+
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  restart|reload)
+	restart
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
+
