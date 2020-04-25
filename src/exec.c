@@ -32,8 +32,6 @@ void *exec_create(int rootfd, const char *cgipath, const char *gpioname, char **
 {
 	exec_t *ctx = calloc(1, sizeof(*ctx));
 	ctx->rootfd = rootfd;
-dbg("rootfd %d", ctx->rootfd);
-dbg("cgipath %s", cgipath);
 	if (cgipath != NULL && !faccessat(rootfd, cgipath, X_OK, 0))
 	{
 		ctx->cgipath = strdup(cgipath);
@@ -123,6 +121,8 @@ void exec_run(void *arg, int chipid, int line, struct gpiod_line_event *event)
 
 		setbuf(stdout, 0);
 		sched_yield();
+
+		setsid();
 		/**
 		 * cgipath is absolute, but in fact execveat runs in docroot.
 		 */
