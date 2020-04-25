@@ -40,6 +40,7 @@ struct gpio_s
 	int fd;
 	int id;
 	int chipid;
+	int last;
 };
 
 typedef struct gpiochip_s gpiochip_t;
@@ -158,11 +159,17 @@ static int gpiod_setpoll(struct pollfd *poll_set, int numpoll)
 	{
 		if (numfds < numpoll)
 		{
-			poll_set[numfds].fd = gpio->fd;
-			poll_set[numfds].events = POLLIN;
-			gpio->poll_set = &poll_set[numfds];
+			if (! gpio->last)
+			{
+				poll_set[numfds].fd = gpio->fd;
+				poll_set[numfds].events = POLLIN;
+				poll_set[numfds].revents = 0;
+				gpio->poll_set = &poll_set[numfds];
+				numfds++;
+			}
+			else
+				gpio->last = 0;
 		}
-		numfds++;
 		gpio = gpio->next;
 	}
 	mutex_unlock(&g_gpios->lock);
@@ -172,9 +179,20 @@ static int gpiod_setpoll(struct pollfd *poll_set, int numpoll)
 static int gpiod_dispatch(gpio_t *gpio, struct gpiod_line_event *event)
 {
 	gpio_handler_t *handler = gpio->handlers;
+	int line = gpiod_line_offset(gpio->handle);
+	int ret = gpiod_line_get_value(gpio->handle);
+	if (ret == 1)
+		event->event_type = GPIOD_LINE_EVENT_RISING_EDGE;
+	else if (ret == 0)
+		event->event_type = GPIOD_LINE_EVENT_FALLING_EDGE;
+	dbg("gpiod: line %d %s", line,
+		(event->event_type == GPIOD_LINE_EVENT_RISING_EDGE)?
+			"rising":"falling");
+	if (gpio->last == event->event_type)
+		return -1;
+	gpio->last = event->event_type;
 	while (handler != NULL)
 	{
-		int line = gpiod_line_offset(gpio->handle);
 		handler->handler(handler->ctx, gpio->chipid, line, event);
 		handler = handler->next;
 	}
@@ -203,13 +221,12 @@ int gpiod_monitor()
 
 	gpiod_check();
 
-	numfds = gpiod_setpoll(poll_set, MAX_GPIOS);
-
 	while(g_run)
 	{
 		int ret;
 
-		ret = poll(poll_set, numfds, -1);
+		numfds = gpiod_setpoll(poll_set, MAX_GPIOS);
+		ret = poll(poll_set, numfds, 500);
 		if (ret > 0)
 		{
 			gpio_t *gpio = g_gpios;
