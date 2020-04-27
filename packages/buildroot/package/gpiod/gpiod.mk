@@ -9,7 +9,7 @@ GPIOD_SITE = $(call github,mchalain,gpiod,$(GPIOD_VERSION))
 
 GPIOD_MAKE_OPTS+=prefix=/usr
 GPIOD_MAKE_OPTS+=sysconfdir=/etc/gpiod
-GPIOD_MAKE_OPTS+=DEBUG=y
+#GPIOD_MAKE_OPTS+=DEBUG=y
 
 GPIOD_KCONFIG_FILE=$(GPIOD_PKGDIR)/gpiod_defconfig
 GPIOD_KCONFIG_EDITORS = config
