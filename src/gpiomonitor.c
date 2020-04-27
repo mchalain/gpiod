@@ -16,6 +16,8 @@
 #include "gpiomonitor.h"
 #include "exec.h"
 
+#define DEBOUNCING (1 << 16)
+
 typedef int mutex_t;
 #define mutex_lock(mut) do{}while(0)
 #define mutex_unlock(mut) do{}while(0)
@@ -159,7 +161,7 @@ static int gpiod_setpoll(struct pollfd *poll_set, int numpoll)
 	{
 		if (numfds < numpoll)
 		{
-			if (! gpio->last)
+			if (! (gpio->last & DEBOUNCING))
 			{
 				poll_set[numfds].fd = gpio->fd;
 				poll_set[numfds].events = POLLIN;
@@ -168,7 +170,7 @@ static int gpiod_setpoll(struct pollfd *poll_set, int numpoll)
 				numfds++;
 			}
 			else
-				gpio->last = 0;
+				gpio->last &= ~DEBOUNCING;
 		}
 		gpio = gpio->next;
 	}
@@ -180,23 +182,27 @@ static int gpiod_dispatch(gpio_t *gpio, struct gpiod_line_event *event)
 {
 	gpio_handler_t *handler = gpio->handlers;
 	int line = gpiod_line_offset(gpio->handle);
-	int ret = gpiod_line_get_value(gpio->handle);
-	if (ret == 1)
+	int value = gpiod_line_get_value(gpio->handle);
+	if (value == 1)
 		event->event_type = GPIOD_LINE_EVENT_RISING_EDGE;
-	else if (ret == 0)
+	else if (value == 0)
 		event->event_type = GPIOD_LINE_EVENT_FALLING_EDGE;
+	else
+		return 0;
+
 	dbg("gpiod: line %d %s", line,
 		(event->event_type == GPIOD_LINE_EVENT_RISING_EDGE)?
 			"rising":"falling");
-	if (gpio->last == event->event_type)
-		return -1;
-	gpio->last = event->event_type;
+
+	if ((gpio->last & ~DEBOUNCING) == event->event_type)
+		return 0;
+	gpio->last = event->event_type | DEBOUNCING;
 	while (handler != NULL)
 	{
 		handler->handler(handler->ctx, gpio->chipid, line, event);
 		handler = handler->next;
 	}
-	return 0;
+	return 1;
 }
 static int gpiod_check()
 {
@@ -218,6 +224,7 @@ int gpiod_monitor()
 {
 	struct pollfd poll_set[MAX_GPIOS];
 	int numfds = 0;
+	int debouncing = 0;
 
 	gpiod_check();
 
@@ -226,9 +233,12 @@ int gpiod_monitor()
 		int ret;
 
 		numfds = gpiod_setpoll(poll_set, MAX_GPIOS);
-		ret = poll(poll_set, numfds, 500);
+		
+		ret = poll(poll_set, numfds, debouncing);
+		debouncing = -1;
 		if (ret > 0)
 		{
+			ret = 0;
 			gpio_t *gpio = g_gpios;
 			while (gpio != NULL)
 			{
@@ -238,10 +248,14 @@ int gpiod_monitor()
 					ret = gpiod_line_event_read_fd(gpio->fd, &event);
 					if (ret < 0)
 						break;
-					gpiod_dispatch(gpio, &event);
+					ret += gpiod_dispatch(gpio, &event);
 					gpio->poll_set->revents = 0;
 				}
 				gpio = gpio->next;
+			}
+			if (ret > 0)
+			{
+				debouncing = 500;
 			}
 		}
 	}

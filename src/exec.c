@@ -133,7 +133,7 @@ void exec_run(void *arg, int chipid, int line, struct gpiod_line_event *event)
 		close(ctx->rootfd);
 		if (scriptfd > 0)
 		{
-			dbg("gpiod: event");
+			dbg("gpiod: event %s %s", argv[0], argv[1]);
 			fexecve(scriptfd, argv, env);
 		}
 #endif
