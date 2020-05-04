@@ -16,9 +16,12 @@ void display_help(char * const *argv)
 {
 	fprintf(stderr, PACKAGE" "VERSION" build: "__DATE__" "__TIME__"\n");
 	fprintf(stderr, "\n");
-	fprintf(stderr, "%s [-h][-V][-f <configfile>]\n", argv[0]);
+	fprintf(stderr, "%s [-h][-D][-K]\n", argv[0]);
 	fprintf(stderr, "\t-h \t\tshow this help and exit\n");
 	fprintf(stderr, "\t-D \t\tto daemonize the server\n");
+	fprintf(stderr, "\t-K \t\tto kill the current daemon\n");
+	fprintf(stderr, "\t-p <pidfile> \t\tto set the pid file of the daemon\n");
+	fprintf(stderr, "\t-R <dir> \t\tto set the rules directory\n");
 }
 
 #ifdef HAVE_SIGACTION
