@@ -118,6 +118,20 @@ int gpiod_setline(int chipid, struct gpiod_line *handle)
 	const char *consumer = gpiod_line_consumer(handle);
 	if (consumer != NULL)
 	{
+		if (!strcmp(consumer, str_gpiod))
+		{
+			int line = gpiod_line_offset(handle);
+			gpio_t *gpio = g_gpios;
+			while (gpio != NULL)
+			{
+				if (line == gpiod_line_offset(gpio->handle))
+					return gpio->id;
+				gpio = gpio->next;
+			}
+		}
+	}
+	if (consumer != NULL)
+	{
 		err("gpiod: line %d already used by %s", gpiod_line_offset(handle), consumer);
 		return -1;
 	}
