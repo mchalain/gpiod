@@ -9,14 +9,12 @@ BINDIR=/usr/bin
 
 start() {
 	printf "Starting gpiod: "
-	start-stop-daemon -S -q -p ${RUNDIR}/gpiod.pid --exec ${SBINDIR}/gpiod --
+	start-stop-daemon -S -q --exec ${SBINDIR}/gpiod -- -D -p ${RUNDIR}/gpiod.pid
 	[ $? == 0 ] && echo "OK" || echo "FAILED"
 }
 stop() {
 	printf "Stopping gpiod: "
-	if [ -e ${RUNDIR}/gpiod.pid ]; then
-		start-stop-daemon -K -q -p ${RUNDIR}/gpiod.pid
-	fi
+	${SBINDIR}/gpiod -K -p ${RUNDIR}/gpiod.pid
 	echo "OK"
 }
 restart() {
