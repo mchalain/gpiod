@@ -11,6 +11,7 @@ gpiod_SOURCES+=main.c
 gpiod_SOURCES+=daemonize.c
 gpiod_SOURCES+=gpiomonitor.c
 gpiod_SOURCES+=exec.c
+gpiod_SOURCES+=led.c
 gpiod_SOURCES-$(LIBCONFIG)+=rules_conf.c
 gpiod_LIBS+=gpiod
 gpiod_LIBS-$(LIBCONFIG)+=config

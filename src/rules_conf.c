@@ -10,9 +10,33 @@
 #include "log.h"
 #include "gpiomonitor.h"
 #include "exec.h"
+#include "led.h"
 #include "rules.h"
 
 static int g_rootfd = AT_FDCWD;
+
+static int rules_ledrule(struct gpiod_chip *chiphandle, int gpioid, config_setting_t *led, int bled)
+{
+	int ret = -1;
+	struct gpiod_line *handle = NULL;
+	if (config_setting_is_number(led))
+	{
+		int line = config_setting_get_int(led);
+		handle = gpiod_chip_get_line(chiphandle, line);
+	}
+	else if (config_setting_type(led) == CONFIG_TYPE_STRING)
+	{
+		const char *name = config_setting_get_string(led);
+		handle = gpiod_chip_find_line(chiphandle, name);
+	}
+	if (handle != NULL)
+	{
+		void *ctx = NULL;
+		ctx = led_create(handle, bled);
+		ret = gpiod_addhandler(gpioid, ctx, led_run);
+	}
+	return ret;
+}
 
 static int rules_parserule(config_setting_t *iterator)
 {
@@ -69,11 +93,18 @@ static int rules_parserule(config_setting_t *iterator)
 		config_setting_lookup_string(iterator, "exec", &exec);
 		if (exec != NULL && gpioid > -1)
 		{
-
 			void *ctx = NULL;
 			ctx = exec_create(g_rootfd, exec, name, env, nbenvs);
 			ret = gpiod_addhandler(gpioid, ctx, exec_run);
 		}
+
+		config_setting_t *led;
+		led = config_setting_lookup(iterator, "led");
+		if (led != NULL && gpioid > -1)
+			ret = rules_ledrule(chiphandle, gpioid, led, 0);
+		led = config_setting_lookup(iterator, "bled");
+		if (led != NULL && gpioid > -1)
+			ret = rules_ledrule(chiphandle, gpioid, led, 1);
 	}
 	return ret;
 }
