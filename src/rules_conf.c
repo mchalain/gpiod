@@ -84,10 +84,9 @@ static int rules_parserule(config_setting_t *iterator)
 		{
 			handle = gpiod_chip_find_line(chiphandle, name);
 		}
+
 		if (handle != NULL)
 		{
-			if (name == NULL)
-				name = gpiod_line_name(handle);
 			gpioid = gpiod_setline(chipid, handle, name);
 		}
 

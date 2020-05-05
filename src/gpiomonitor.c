@@ -158,6 +158,8 @@ int gpiod_setline(int chipid, struct gpiod_line *handle, const char *name)
 	gpio->chipid = chip->id;
 	gpio->handle = handle;
 	gpio->fd = fd;
+	if (name == NULL)
+		name = gpiod_line_name(handle);
 	if (name != NULL)
 		gpio->name = strdup(name);
 
