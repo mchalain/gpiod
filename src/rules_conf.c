@@ -15,9 +15,9 @@
 
 static int g_rootfd = AT_FDCWD;
 
-static int rules_ledrule(struct gpiod_chip *chiphandle, int gpioid, config_setting_t *led, int bled)
+static void *rules_ledrule(struct gpiod_chip *chiphandle, int gpioid, config_setting_t *led, int bled)
 {
-	int ret = -1;
+	void *ctx = NULL;
 	struct gpiod_line *handle = NULL;
 	if (config_setting_is_number(led))
 	{
@@ -31,22 +31,23 @@ static int rules_ledrule(struct gpiod_chip *chiphandle, int gpioid, config_setti
 	}
 	if (handle != NULL)
 	{
-		void *ctx = NULL;
 		ctx = led_create(handle, bled);
-		ret = gpiod_addhandler(gpioid, ctx, led_run);
 	}
-	return ret;
+	return ctx;
 }
 
 static int rules_parserule(config_setting_t *iterator)
 {
-	int ret = -1;
-	int chipid = -1;
 	int gpioid = -1;
-	char **env = NULL;
-	int nbenvs = 0;
+	struct
+	{
+		void *ctx;
+		handler_t run;
+	} handlers[3];
+	int nhandlers = 0;
 	if (iterator)
 	{
+		int chipid = -1;
 		const char *chipname = NULL;
 		struct gpiod_chip *chiphandle = NULL;
 		const char *device = NULL;
@@ -90,23 +91,42 @@ static int rules_parserule(config_setting_t *iterator)
 			gpioid = gpiod_setline(chipid, handle, name);
 		}
 
+		char **env = NULL;
+		int nbenvs = 0;
+
 		const char *exec = NULL;
 		config_setting_lookup_string(iterator, "exec", &exec);
-		if (exec != NULL && gpioid > -1)
+		if (exec != NULL)
 		{
-			void *ctx = NULL;
-			ctx = exec_create(g_rootfd, exec, env, nbenvs);
-			ret = gpiod_addhandler(gpioid, ctx, exec_run);
+			handlers[nhandlers].ctx = exec_create(g_rootfd, exec, env, nbenvs);
+			handlers[nhandlers].run = &exec_run;
+			if (handlers[nhandlers].ctx != NULL)
+				nhandlers++;
 		}
 
 		config_setting_t *led;
 		led = config_setting_lookup(iterator, "led");
-		if (led != NULL && gpioid > -1)
-			ret = rules_ledrule(chiphandle, gpioid, led, 0);
+		if (led != NULL)
+		{
+			handlers[nhandlers].ctx = rules_ledrule(chiphandle, gpioid, led, 0);
+			handlers[nhandlers].run = &led_run;
+			if (handlers[nhandlers].ctx != NULL)
+				nhandlers++;
+		}
 		led = config_setting_lookup(iterator, "bled");
-		if (led != NULL && gpioid > -1)
-			ret = rules_ledrule(chiphandle, gpioid, led, 1);
+		if (led != NULL)
+		{
+			handlers[nhandlers].ctx = rules_ledrule(chiphandle, gpioid, led, 0);
+			handlers[nhandlers].run = &led_run;
+			if (handlers[nhandlers].ctx != NULL)
+				nhandlers++;
+		}
+
 	}
+	int ret = -1;
+	int i;
+	for (i = 0; i < nhandlers && gpioid > -1; i++)
+		ret = gpiod_addhandler(gpioid, handlers[i].ctx, handlers[i].run);
 	return ret;
 }
 
