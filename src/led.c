@@ -32,11 +32,11 @@ void *led_create(struct gpiod_line *handle, int bare)
 	ctx->handle = handle;
 	ctx->bare = bare;
 	gpiod_line_request_output(handle, "gpiod", 0);
-	
+
 	return ctx;
 }
 
-void led_run(void *arg, int chipid, int line, struct gpiod_line_event *event)
+void led_run(void *arg, int chipid, int gpioid, struct gpiod_line_event *event)
 {
 	led_t *ctx = (led_t *)arg;
 	unsigned int val;

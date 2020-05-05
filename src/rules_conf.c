@@ -95,7 +95,7 @@ static int rules_parserule(config_setting_t *iterator)
 		if (exec != NULL && gpioid > -1)
 		{
 			void *ctx = NULL;
-			ctx = exec_create(g_rootfd, exec, name, env, nbenvs);
+			ctx = exec_create(g_rootfd, exec, env, nbenvs);
 			ret = gpiod_addhandler(gpioid, ctx, exec_run);
 		}
 

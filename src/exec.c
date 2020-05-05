@@ -28,7 +28,7 @@ static const char str_GPIOENV[] = "GPIO=%.2d";
 static const char str_CHIPENV[] = "CHIP=%.2d";
 static const char str_NAMEENV[] = "NAME=%s";
 
-void *exec_create(int rootfd, const char *cgipath, const char *gpioname, char **env, int nbenvs)
+void *exec_create(int rootfd, const char *cgipath, char **env, int nbenvs)
 {
 	exec_t *ctx = calloc(1, sizeof(*ctx));
 	ctx->rootfd = rootfd;
@@ -41,10 +41,6 @@ void *exec_create(int rootfd, const char *cgipath, const char *gpioname, char **
 		err("exec %s not found", cgipath);
 		return NULL;
 	}
-	if (gpioname != NULL)
-		ctx->gpioname = strdup(gpioname);
-	else
-		ctx->gpioname = NULL;
 	ctx->env = calloc(nbenvs + NUMENVS + 1, 4);
 	int i = 0;
 	for (; i < nbenvs; i++)
@@ -55,7 +51,7 @@ void *exec_create(int rootfd, const char *cgipath, const char *gpioname, char **
 	return ctx;
 }
 
-void exec_run(void *arg, int chipid, int line, struct gpiod_line_event *event)
+void exec_run(void *arg, int chipid, int gpioid, struct gpiod_line_event *event)
 {
 	const exec_t *ctx = (const exec_t *)arg;
 #ifdef ENABLE_CGISTDFILE
@@ -104,20 +100,17 @@ void exec_run(void *arg, int chipid, int line, struct gpiod_line_event *event)
 		char *const argv[3] = { STRDUP(ctx->cgipath), STRDUP(eventstr), NULL };
 		char **env = ctx->env;
 		env[0] = STRNDUP(str_GPIOENV, sizeof(str_GPIOENV));
-		sprintf(env[0], str_GPIOENV, line);
+		sprintf(env[0], str_GPIOENV, gpiod_line(gpioid));
 		env[1] = STRNDUP(str_CHIPENV, sizeof(str_CHIPENV));
 		sprintf(env[1], str_CHIPENV, chipid);
 		const char *gpioname = NULL;
 		env[2] = malloc(25);
-		if (ctx->gpioname)
-		{
-			gpioname = ctx->gpioname;
-		}
-		else
+		gpioname = gpiod_name(gpioid);
+		if (gpioname == NULL)
 		{
 			gpioname = str_empty;
 		}
-		sprintf(env[2], str_NAMEENV, gpioname);
+		snprintf(env[2], 25, str_NAMEENV, gpioname);
 
 		setbuf(stdout, 0);
 		sched_yield();

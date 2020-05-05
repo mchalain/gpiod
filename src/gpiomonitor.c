@@ -181,6 +181,18 @@ const char *gpiod_name(int gpioid)
 	return gpio->name;
 }
 
+int gpiod_line(int gpioid)
+{
+	gpio_t *gpio = g_gpios;
+	while (gpio != NULL && gpio->id != gpioid) gpio = gpio->next;
+	if (gpio == NULL)
+	{
+		err("gpiod: gpio %d not found", gpioid);
+		return -1;
+	}
+	return gpiod_line_offset(gpio->handle);
+}
+
 static int gpiod_setpoll(struct pollfd *poll_set, int numpoll)
 {
 	int numfds = 0;
@@ -228,7 +240,7 @@ static int gpiod_dispatch(gpio_t *gpio, struct gpiod_line_event *event)
 	gpio->last = event->event_type | DEBOUNCING;
 	while (handler != NULL)
 	{
-		handler->handler(handler->ctx, gpio->chipid, line, event);
+		handler->handler(handler->ctx, gpio->chipid, gpio->id, event);
 		handler = handler->next;
 	}
 	return 1;
