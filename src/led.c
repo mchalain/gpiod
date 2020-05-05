@@ -18,14 +18,6 @@ struct led_s
 	int bare;
 };
 
-static const char str_rising[] = "rising";
-static const char str_falling[] = "falling";
-static const char str_empty[] = "";
-#define NUMENVS 3
-static const char str_GPIOENV[] = "GPIO=%.2d";
-static const char str_CHIPENV[] = "CHIP=%.2d";
-static const char str_NAMEENV[] = "NAME=%s";
-
 void *led_create(struct gpiod_line *handle, int bare)
 {
 	led_t *ctx = calloc(1, sizeof(*ctx));
