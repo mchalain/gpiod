@@ -73,7 +73,8 @@ int rules_getgpio(config_setting_t *gpiosetting, int chipid, struct gpiod_chip *
 
 static int rules_parserule(config_setting_t *iterator)
 {
-	int gpioid = -1;
+	int gpioid[64] = {-1};
+	int ngpioids = 0;
 	struct
 	{
 		void *ctx;
@@ -108,8 +109,24 @@ static int rules_parserule(config_setting_t *iterator)
 
 		const char *name = NULL;
 		config_setting_lookup_string(iterator, "name", &name);
-		gpioid = rules_getgpio(config_setting_lookup(iterator, "line"),
+		gpioid[ngpioids] = rules_getgpio(config_setting_lookup(iterator, "line"),
 								chipid, chiphandle, name);
+		if (gpioid[ngpioids] > -1)
+			ngpioids++;
+		config_setting_t *lines = config_setting_lookup(iterator, "lines");
+		if (lines != NULL && config_setting_is_array(lines))
+		{
+			int i;
+			int length = config_setting_length(lines);
+			length = (length > 64)?64:length;
+			for (i = 0; i < length; i++)
+			{
+				gpioid[ngpioids] = rules_getgpio(config_setting_get_elem(lines, i),
+										chipid, chiphandle, name);
+				if (gpioid[ngpioids] > -1)
+					ngpioids++;
+			}
+		}
 
 		char **env = NULL;
 		int nbenvs = 0;
@@ -145,8 +162,15 @@ static int rules_parserule(config_setting_t *iterator)
 	}
 	int ret = -1;
 	int i;
-	for (i = 0; i < nhandlers && gpioid > -1; i++)
-		ret = gpiod_addhandler(gpioid, handlers[i].ctx, handlers[i].run);
+	for (i = 0; i < nhandlers; i++)
+	{
+		int j = 0;
+		while (gpioid[j] > -1)
+		{
+			ret = gpiod_addhandler(gpioid[j], handlers[i].ctx, handlers[i].run);
+			j++;
+		}
+	}
 	return ret;
 }
 
