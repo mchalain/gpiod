@@ -36,6 +36,7 @@ typedef struct gpio_s gpio_t;
 struct gpio_s
 {
 	struct gpiod_line *handle;
+	char *name;
 	struct pollfd *poll_set;
 	gpio_t *next;
 	gpio_handler_t *handlers;
@@ -104,7 +105,7 @@ int gpiod_addhandler(int gpioid, void *ctx, handler_t callback)
 	return 0;
 }
 
-int gpiod_setline(int chipid, struct gpiod_line *handle)
+int gpiod_setline(int chipid, struct gpiod_line *handle, const char *name)
 {
 	uint32_t handleflags = 0;
 	gpiochip_t *chip = g_gpiochip;
@@ -157,6 +158,8 @@ int gpiod_setline(int chipid, struct gpiod_line *handle)
 	gpio->chipid = chip->id;
 	gpio->handle = handle;
 	gpio->fd = fd;
+	if (name != NULL)
+		gpio->name = strdup(name);
 
 	if (g_gpios)
 		gpio->id = g_gpios->id +1;
@@ -164,6 +167,18 @@ int gpiod_setline(int chipid, struct gpiod_line *handle)
 	g_gpios = gpio;
 
 	return gpio->id;
+}
+
+const char *gpiod_name(int gpioid)
+{
+	gpio_t *gpio = g_gpios;
+	while (gpio != NULL && gpio->id != gpioid) gpio = gpio->next;
+	if (gpio == NULL)
+	{
+		err("gpiod: gpio %d not found", gpioid);
+		return NULL;
+	}
+	return gpio->name;
 }
 
 static int gpiod_setpoll(struct pollfd *poll_set, int numpoll)
@@ -247,7 +262,7 @@ int gpiod_monitor()
 		int ret;
 
 		numfds = gpiod_setpoll(poll_set, MAX_GPIOS);
-		
+
 		ret = poll(poll_set, numfds, debouncing);
 		debouncing = -1;
 		if (ret > 0)
@@ -295,6 +310,8 @@ void gpiod_free()
 			free(handler);
 			handler = next;
 		}
+		if (gpio->name != NULL)
+			free(gpio->name);
 		free(gpio);
 		gpio = next;
 	}

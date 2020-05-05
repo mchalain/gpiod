@@ -85,8 +85,9 @@ static int rules_parserule(config_setting_t *iterator)
 		}
 		if (handle != NULL)
 		{
-			name = gpiod_line_name(handle);
-			gpioid = gpiod_setline(chipid, handle);
+			if (name == NULL)
+				name = gpiod_line_name(handle);
+			gpioid = gpiod_setline(chipid, handle, name);
 		}
 
 		const char *exec = NULL;
