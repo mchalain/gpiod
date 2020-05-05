@@ -36,6 +36,41 @@ static void *rules_ledrule(struct gpiod_chip *chiphandle, config_setting_t *led,
 	return ctx;
 }
 
+static struct gpiod_line *rules_gpio_by_line(config_setting_t *iterator, struct gpiod_chip *chiphandle)
+{
+	struct gpiod_line *handle = NULL;
+	int line = -1;
+	if (config_setting_is_number(iterator))
+		line = config_setting_get_int(iterator);
+	else if (config_setting_is_number(iterator))
+	{
+		line = strtol(config_setting_get_string(iterator), NULL, 10);
+	}
+	if (line > -1 && chiphandle != NULL)
+	{
+		handle = gpiod_chip_get_line(chiphandle, line);
+	}
+	return handle;
+}
+
+int rules_getgpio(config_setting_t *gpiosetting, int chipid, struct gpiod_chip *chiphandle, const char *name)
+{
+	int gpioid = -1;
+	struct gpiod_line *handle = NULL;
+
+	if (handle == NULL && gpiosetting != NULL)
+		handle = rules_gpio_by_line(gpiosetting, chiphandle);
+
+	if (handle == NULL && name != NULL)
+		handle = gpiod_chip_find_line(chiphandle, name);
+
+	if (handle != NULL)
+	{
+		gpioid = gpiod_setline(chipid, handle, name);
+	}
+	return gpioid;
+}
+
 static int rules_parserule(config_setting_t *iterator)
 {
 	int gpioid = -1;
@@ -72,23 +107,9 @@ static int rules_parserule(config_setting_t *iterator)
 		}
 
 		const char *name = NULL;
-		struct gpiod_line *handle = NULL;
-		int line = -1;
-		config_setting_lookup_int(iterator, "line", &line);
-		if (line > -1 && chiphandle != NULL)
-		{
-			handle = gpiod_chip_get_line(chiphandle, line);
-		}
 		config_setting_lookup_string(iterator, "name", &name);
-		if (handle == NULL && name != NULL && chiphandle != NULL)
-		{
-			handle = gpiod_chip_find_line(chiphandle, name);
-		}
-
-		if (handle != NULL)
-		{
-			gpioid = gpiod_setline(chipid, handle, name);
-		}
+		gpioid = rules_getgpio(config_setting_lookup(iterator, "line"),
+								chipid, chiphandle, name);
 
 		char **env = NULL;
 		int nbenvs = 0;
