@@ -15,7 +15,7 @@
 
 static int g_rootfd = AT_FDCWD;
 
-static void *rules_ledrule(struct gpiod_chip *chiphandle, int gpioid, config_setting_t *led, int bled)
+static void *rules_ledrule(struct gpiod_chip *chiphandle, config_setting_t *led, int bled)
 {
 	void *ctx = NULL;
 	struct gpiod_line *handle = NULL;
@@ -107,7 +107,7 @@ static int rules_parserule(config_setting_t *iterator)
 		led = config_setting_lookup(iterator, "led");
 		if (led != NULL)
 		{
-			handlers[nhandlers].ctx = rules_ledrule(chiphandle, gpioid, led, 0);
+			handlers[nhandlers].ctx = rules_ledrule(chiphandle, led, 0);
 			handlers[nhandlers].run = &led_run;
 			if (handlers[nhandlers].ctx != NULL)
 				nhandlers++;
@@ -115,7 +115,7 @@ static int rules_parserule(config_setting_t *iterator)
 		led = config_setting_lookup(iterator, "bled");
 		if (led != NULL)
 		{
-			handlers[nhandlers].ctx = rules_ledrule(chiphandle, gpioid, led, 0);
+			handlers[nhandlers].ctx = rules_ledrule(chiphandle, led, 1);
 			handlers[nhandlers].run = &led_run;
 			if (handlers[nhandlers].ctx != NULL)
 				nhandlers++;
