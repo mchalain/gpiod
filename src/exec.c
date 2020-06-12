@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sched.h>
+#include <sys/wait.h>
 
 #include "log.h"
 #include "gpiomonitor.h"
@@ -115,15 +116,20 @@ void exec_run(void *arg, int chipid, int gpioid, struct gpiod_line_event *event)
 		setbuf(stdout, 0);
 		sched_yield();
 
-		setsid();
+		int ret = setsid();
 		/**
 		 * cgipath is absolute, but in fact execveat runs in docroot.
 		 */
+		int rootfd = ctx->rootfd;
+		char *cgipath = strdup(ctx->cgipath);
+		gpiod_free();
+
 #ifdef USE_EXECVEAT
-		execveat(ctx->rootfd, ctx->cgipath, argv, env);
+		execveat(rootfd, cgipath, argv, env);
 #else
-		int scriptfd = openat(ctx->rootfd, ctx->cgipath, O_PATH);
-		close(ctx->rootfd);
+		int scriptfd = openat(rootfd, cgipath, O_PATH);
+		close(rootfd);
+		free(cgipath);
 		if (scriptfd > 0)
 		{
 			dbg("gpiod: event %s %s", argv[0], argv[1]);
@@ -133,15 +139,16 @@ void exec_run(void *arg, int chipid, int gpioid, struct gpiod_line_event *event)
 		err("gpiod: cgi error: %s", strerror(errno));
 		exit(0);
 	}
-#ifdef ENABLE_CGISTDFILE
 	else
 	{
+#ifdef ENABLE_CGISTDFILE
 		/* keep only input of the pipe */
 		close(tocgi[0]);
 		/* keep only output of the pipe */
 		close(fromcgi[1]);
-	}
 #endif
+		wait(NULL);
+	}
 	return;
 }
 
