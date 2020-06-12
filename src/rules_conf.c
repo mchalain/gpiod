@@ -74,6 +74,7 @@ int rules_getgpio(config_setting_t *gpiosetting, int chipid, struct gpiod_chip *
 static int rules_parserule(config_setting_t *iterator)
 {
 	int gpioid[64] = {-1};
+	memset(gpioid, -1, sizeof(gpioid));
 	int ngpioids = 0;
 	struct
 	{
