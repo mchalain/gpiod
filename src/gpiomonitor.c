@@ -40,7 +40,6 @@ struct gpio_s
 	struct pollfd *poll_set;
 	gpio_t *next;
 	gpio_handler_t *handlers;
-	int fd;
 	int id;
 	int chipid;
 	int last;
@@ -146,18 +145,10 @@ int gpiod_setline(int chipid, struct gpiod_line *handle, const char *name)
 		err("gpiod: request line %d error", gpiod_line_offset(handle));
 		return -1;
 	}
-	int fd = gpiod_line_event_get_fd(handle);
-	if (fd < 0)
-	{
-		gpiod_line_release(handle);
-		err("gpiod: line %d configuration error", gpiod_line_offset(handle));
-		return -1;
-	}
 
 	gpio_t *gpio = calloc(1, sizeof(*gpio));
 	gpio->chipid = chip->id;
 	gpio->handle = handle;
-	gpio->fd = fd;
 	if (name == NULL)
 		name = gpiod_line_name(handle);
 	if (name != NULL)
@@ -206,7 +197,8 @@ static int gpiod_setpoll(struct pollfd *poll_set, int numpoll)
 		{
 			if (! (gpio->last & DEBOUNCING))
 			{
-				poll_set[numfds].fd = gpio->fd;
+				//poll_set[numfds].fd = gpio->fd;
+				poll_set[numfds].fd = gpiod_line_event_get_fd(gpio->handle);
 				poll_set[numfds].events = POLLIN;
 				poll_set[numfds].revents = 0;
 				gpio->poll_set = &poll_set[numfds];
@@ -288,7 +280,7 @@ int gpiod_monitor()
 				if (gpio->poll_set->revents == POLLIN)
 				{
 					struct gpiod_line_event event;
-					ret = gpiod_line_event_read_fd(gpio->fd, &event);
+					ret = gpiod_line_event_read(gpio->handle, &event);
 					if (ret < 0)
 						break;
 					ret += gpiod_dispatch(gpio, &event);
