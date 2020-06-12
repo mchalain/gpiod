@@ -200,9 +200,11 @@ static int gpiod_setpoll(struct pollfd *poll_set, int numpoll)
 			{
 				//poll_set[numfds].fd = gpio->fd;
 				poll_set[numfds].fd = gpiod_line_event_get_fd(gpio->handle);
-				poll_set[numfds].events = POLLIN;
+				poll_set[numfds].events = POLLIN | POLLPRI;
 				poll_set[numfds].revents = 0;
 				gpio->poll_set = &poll_set[numfds];
+
+				fcntl(poll_set[numfds].fd, F_SETFD, FD_CLOEXEC);
 				numfds++;
 			}
 			else
@@ -260,15 +262,15 @@ int gpiod_monitor()
 {
 	struct pollfd poll_set[MAX_GPIOS];
 	int numfds = 0;
-	int debouncing = 0;
+	int debouncing = -1;
+
 
 	gpiod_check();
+	numfds = gpiod_setpoll(poll_set, MAX_GPIOS);
 
 	while(g_run)
 	{
 		int ret;
-
-		numfds = gpiod_setpoll(poll_set, MAX_GPIOS);
 
 		ret = poll(poll_set, numfds, debouncing);
 		debouncing = -1;
@@ -278,7 +280,7 @@ int gpiod_monitor()
 			gpio_t *gpio = g_gpios;
 			while (gpio != NULL)
 			{
-				if (gpio->poll_set->revents == POLLIN)
+				if (gpio->poll_set->revents != 0)
 				{
 					struct gpiod_line_event event;
 					ret = gpiod_line_event_read(gpio->handle, &event);
