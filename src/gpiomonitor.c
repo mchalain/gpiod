@@ -104,6 +104,12 @@ int gpiod_addhandler(int gpioid, void *ctx, handler_t callback)
 	return 0;
 }
 
+static struct gpiod_line_request_config config = {
+	.consumer = str_gpiod,
+	.request_type = GPIOD_LINE_REQUEST_EVENT_BOTH_EDGES,
+	.flags = 0,
+};
+
 int gpiod_setline(int chipid, struct gpiod_line *handle, const char *name)
 {
 	uint32_t handleflags = 0;
@@ -135,11 +141,6 @@ int gpiod_setline(int chipid, struct gpiod_line *handle, const char *name)
 		err("gpiod: line %d already used by %s", gpiod_line_offset(handle), consumer);
 		return -1;
 	}
-	struct gpiod_line_request_config config = {
-		.consumer = str_gpiod,
-		.request_type = GPIOD_LINE_REQUEST_EVENT_BOTH_EDGES,
-		.flags = 0,
-	};
 	if (gpiod_line_request(handle, &config, 0) < 0)
 	{
 		err("gpiod: request line %d error", gpiod_line_offset(handle));
