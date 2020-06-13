@@ -117,12 +117,22 @@ void exec_run(void *arg, int chipid, int gpioid, struct gpiod_line_event *event)
 		sched_yield();
 
 		int ret = setsid();
+
 		/**
 		 * cgipath is absolute, but in fact execveat runs in docroot.
 		 */
 		int rootfd = ctx->rootfd;
 		char *cgipath = strdup(ctx->cgipath);
 		gpiod_free();
+
+		/**
+		 * on some system the setsid is not enough
+		 * the parent must wait the clild.
+		 * With a second fork, the third process will live alone,
+		 * and the parent wait only the second one.
+		 */
+		if (vfork() > 0)
+			exit(0);
 
 #ifdef USE_EXECVEAT
 		execveat(rootfd, cgipath, argv, env);
@@ -139,7 +149,7 @@ void exec_run(void *arg, int chipid, int gpioid, struct gpiod_line_event *event)
 		err("gpiod: cgi error: %s", strerror(errno));
 		exit(0);
 	}
-	else
+	else if (pid > 0)
 	{
 #ifdef ENABLE_CGISTDFILE
 		/* keep only input of the pipe */
@@ -147,6 +157,9 @@ void exec_run(void *arg, int chipid, int gpioid, struct gpiod_line_event *event)
 		/* keep only output of the pipe */
 		close(fromcgi[1]);
 #endif
+		/**
+		 * wait the first fork.
+		 */
 		wait(NULL);
 	}
 	return;
