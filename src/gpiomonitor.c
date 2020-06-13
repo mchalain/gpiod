@@ -17,6 +17,7 @@
 #include "exec.h"
 
 #define DEBOUNCING (1 << 16)
+#define SETPOLL_ONCE
 
 typedef int mutex_t;
 #define mutex_lock(mut) do{}while(0)
@@ -248,11 +249,6 @@ static int gpiod_check()
 	while (gpio != NULL)
 	{
 		struct gpiod_line_event event;
-		int ret = gpiod_line_get_value(gpio->handle);
-		if (ret == 1)
-			event.event_type = GPIOD_LINE_EVENT_RISING_EDGE;
-		else if (ret == 0)
-			event.event_type = GPIOD_LINE_EVENT_FALLING_EDGE;
 		gpiod_dispatch(gpio, &event);
 		gpio = gpio->next;
 	}
@@ -262,16 +258,24 @@ int gpiod_monitor()
 {
 	struct pollfd poll_set[MAX_GPIOS];
 	int numfds = 0;
-	int debouncing = -1;
+	int debouncing = 0;
 
-
-	gpiod_check();
+#ifdef SETPOLL_ONCE
+	/**
+	 * check will set the DEBOUNCING
+	 * first setpoll must be without DEBOUNCING
+	 */
 	numfds = gpiod_setpoll(poll_set, MAX_GPIOS);
+#endif
+	gpiod_check();
 
 	while(g_run)
 	{
 		int ret;
 
+#ifndef SETPOLL_ONCE
+		numfds = gpiod_setpoll(poll_set, MAX_GPIOS);
+#endif
 		ret = poll(poll_set, numfds, debouncing);
 		debouncing = -1;
 		if (ret > 0)
