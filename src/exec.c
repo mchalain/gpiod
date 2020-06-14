@@ -28,6 +28,7 @@ static const char str_empty[] = "";
 static const char str_GPIOENV[] = "GPIO=%.2d";
 static const char str_CHIPENV[] = "CHIP=%.2d";
 static const char str_NAMEENV[] = "NAME=%s";
+static const char str_ACTIONENV[] = "ACTION=%s\0\0\0\0\0";
 
 void *exec_create(int rootfd, const char *cgipath, char **env, int nbenvs)
 {
@@ -93,12 +94,8 @@ void exec_run(void *arg, int chipid, int gpioid, struct gpiod_line_event *event)
 # define STRDUP strdup
 #endif
 
-		const char *eventstr = NULL;
-		if (event->event_type == GPIOD_LINE_EVENT_RISING_EDGE)
-			eventstr = str_rising;
-		else
-			eventstr = str_falling;
-		char *const argv[3] = { STRDUP(ctx->cgipath), STRDUP(eventstr), NULL };
+		char *const argv[2] = { STRDUP(ctx->cgipath), NULL };
+
 		char **env = ctx->env;
 		env[0] = STRNDUP(str_GPIOENV, sizeof(str_GPIOENV));
 		sprintf(env[0], str_GPIOENV, gpiod_line(gpioid));
@@ -112,6 +109,13 @@ void exec_run(void *arg, int chipid, int gpioid, struct gpiod_line_event *event)
 			gpioname = str_empty;
 		}
 		snprintf(env[2], 25, str_NAMEENV, gpioname);
+		const char *eventstr = NULL;
+		if (event->event_type == GPIOD_LINE_EVENT_RISING_EDGE)
+			eventstr = str_rising;
+		else
+			eventstr = str_falling;
+		env[3] = malloc(sizeof(str_ACTIONENV));
+		sprintf(env[1], str_ACTIONENV, eventstr);
 
 		setbuf(stdout, 0);
 		sched_yield();
