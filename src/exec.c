@@ -28,13 +28,13 @@ static const char str_empty[] = "";
 static const char str_GPIOENV[] = "GPIO=%.2d";
 static const char str_CHIPENV[] = "CHIP=%.2d";
 static const char str_NAMEENV[] = "NAME=%s";
-static const char str_ACTIONENV[] = "ACTION=%s\0\0\0\0\0";
+static const char str_ACTIONENV[] = "ACTION=%s     ";
 
 void *exec_create(int rootfd, const char *cgipath, char **env, int nbenvs)
 {
 	exec_t *ctx = calloc(1, sizeof(*ctx));
 	ctx->rootfd = rootfd;
-	if (cgipath != NULL && !faccessat(rootfd, cgipath, X_OK, 0))
+	if (cgipath != NULL)
 	{
 		ctx->cgipath = strdup(cgipath);
 	}
@@ -94,7 +94,20 @@ void exec_run(void *arg, int chipid, int gpioid, struct gpiod_line_event *event)
 # define STRDUP strdup
 #endif
 
-		char *const argv[2] = { STRDUP(ctx->cgipath), NULL };
+		int i = 0;
+		char *argv[10];
+		argv[i] =  STRDUP(ctx->cgipath);
+		i++;
+		while ( i < 10 && argv[i - 1] != NULL)
+		{
+			argv[i] = strchr(argv[i - 1], ' ');
+			if (argv[i] != NULL)
+			{
+				*argv[i] = '\0';
+				argv[i]++;
+			}
+			i++;
+		}
 
 		char **env = ctx->env;
 		env[0] = STRNDUP(str_GPIOENV, sizeof(str_GPIOENV));
@@ -126,8 +139,14 @@ void exec_run(void *arg, int chipid, int gpioid, struct gpiod_line_event *event)
 		 * cgipath is absolute, but in fact execveat runs in docroot.
 		 */
 		int rootfd = ctx->rootfd;
-		char *cgipath = strdup(ctx->cgipath);
+		char *cgipath = argv[0];
 		gpiod_free();
+
+		if (faccessat(rootfd, cgipath, X_OK, 0))
+		{
+			err("exec %s not found", ctx->cgipath);
+			exit(-1);
+		}
 
 		/**
 		 * on some system the setsid is not enough
@@ -143,7 +162,6 @@ void exec_run(void *arg, int chipid, int gpioid, struct gpiod_line_event *event)
 #else
 		int scriptfd = openat(rootfd, cgipath, O_PATH);
 		close(rootfd);
-		free(cgipath);
 		if (scriptfd > 0)
 		{
 			dbg("gpiod: event %s %s", argv[0], argv[1]);
