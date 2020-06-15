@@ -80,6 +80,7 @@ static int rules_parserule(config_setting_t *iterator)
 	{
 		void *ctx;
 		handler_t run;
+		int action;
 	} handlers[3];
 	int nhandlers = 0;
 	if (iterator)
@@ -129,6 +130,32 @@ static int rules_parserule(config_setting_t *iterator)
 			}
 		}
 
+		handlers[nhandlers].action = GPIOD_LINE_EVENT_RISING_EDGE | GPIOD_LINE_EVENT_FALLING_EDGE;
+		config_setting_t *action;
+		action = config_setting_lookup(iterator, "action");
+		if (action != NULL)
+		{
+			const char *string;
+			if (config_setting_is_number(action))
+				handlers[nhandlers].action = config_setting_get_int(action);
+			switch (config_setting_type(action))
+			{
+			case CONFIG_TYPE_INT:
+				handlers[nhandlers].action = config_setting_get_int(action);
+			break;
+			case CONFIG_TYPE_STRING:
+				string = config_setting_get_string(action);
+				if (!strcmp(string, "falling"))
+					handlers[nhandlers].action = GPIOD_LINE_EVENT_FALLING_EDGE;
+				if (!strcmp(string, "rising"))
+					handlers[nhandlers].action = GPIOD_LINE_EVENT_RISING_EDGE;
+			break;
+			}
+			if (handlers[nhandlers].action < 0 ||
+				handlers[nhandlers].action > (GPIOD_LINE_EVENT_RISING_EDGE | GPIOD_LINE_EVENT_FALLING_EDGE))
+				handlers[nhandlers].action = GPIOD_LINE_EVENT_RISING_EDGE | GPIOD_LINE_EVENT_FALLING_EDGE;
+		}
+
 		char **env = NULL;
 		int nbenvs = 0;
 
@@ -168,7 +195,7 @@ static int rules_parserule(config_setting_t *iterator)
 		int j = 0;
 		while (gpioid[j] > -1)
 		{
-			ret = gpiod_addhandler(gpioid[j], handlers[i].ctx, handlers[i].run);
+			ret = gpiod_addhandler(gpioid[j], handlers[i].action, handlers[i].ctx, handlers[i].run);
 			j++;
 		}
 	}

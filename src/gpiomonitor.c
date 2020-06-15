@@ -29,6 +29,7 @@ typedef struct gpio_handler_s gpio_handler_t;
 struct gpio_handler_s
 {
 	void *ctx;
+	int action;
 	handler_t handler;
 	gpio_handler_t *next;
 };
@@ -85,7 +86,7 @@ int gpiod_addchip(struct gpiod_chip *handle)
 	return chip->id;
 }
 
-int gpiod_addhandler(int gpioid, void *ctx, handler_t callback)
+int gpiod_addhandler(int gpioid, int action, void *ctx, handler_t callback)
 {
 	gpio_t *gpio = g_gpios;
 	while (gpio != NULL && gpio->id != gpioid) gpio = gpio->next;
@@ -99,6 +100,7 @@ int gpiod_addhandler(int gpioid, void *ctx, handler_t callback)
 	handler = calloc(1, sizeof(*handler));
 	handler->ctx = ctx;
 	handler->handler = callback;
+	handler->action = action;
 	handler->next = gpio->handlers;
 	gpio->handlers = handler;
 
@@ -238,7 +240,8 @@ static int gpiod_dispatch(gpio_t *gpio, struct gpiod_line_event *event)
 	gpio->last = event->event_type | DEBOUNCING;
 	while (handler != NULL)
 	{
-		handler->handler(handler->ctx, gpio->chipid, gpio->id, event);
+		if (handler->action & event->event_type)
+			handler->handler(handler->ctx, gpio->chipid, gpio->id, event);
 		handler = handler->next;
 	}
 	return 1;
