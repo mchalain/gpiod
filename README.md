@@ -31,7 +31,7 @@ The event handler is a script must contain the path to the script and may contai
 rules=({
 	device = "/dev/gpiochip0";
 	line = 26;
-	exec = "/sbin/shutdown";
+	exec = "/sbin/halt";
 	},{
 	chipname = "pinctrl-bcm2835";
 	name = "rfkill";
