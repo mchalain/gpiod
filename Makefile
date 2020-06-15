@@ -1,6 +1,6 @@
 include scripts.mk
 
 package=gpiod
-version=0.1
+version=1,0
 
 subdir-y+=src
