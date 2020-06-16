@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-GPIOD_VERSION = v1.0
+GPIOD_VERSION = 1.0
 GPIOD_SITE = $(call github,mchalain,gpiod,$(GPIOD_VERSION))
 
 GPIOD_MAKE_OPTS+=prefix=/usr
