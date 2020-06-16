@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <dirent.h>
+#include <errno.h>
 
 #include <libconfig.h>
 
@@ -246,45 +247,58 @@ static const char *rulespath[] =
 {
 	"rules.d",
 	"gpiod/rules.d",
+	"gpiod.d",
 	NULL
 };
 int rules_set(const char *sysconfdir)
 {
-	int sysconffd = open(sysconfdir, O_PATH | O_DIRECTORY);
-	int rulesfd;
+	DIR *rulesdir = NULL;
 	int rulesindex = 0;
 	while (rulespath[rulesindex] != NULL)
 	{
-		rulesfd = openat(sysconffd, rulespath[rulesindex], O_PATH | O_DIRECTORY);
-		if (rulesfd > 0)
+		char *path = NULL;
+		asprintf(&path, "%s/%s", sysconfdir, rulespath[rulesindex]);
+		if (path == NULL)
+			break;
+		rulesdir = opendir(path);
+		free(path);
+		if (rulesdir != NULL)
 			break;
 		rulesindex++;
 	}
-	if (rulesfd < 0)
+	if (rulesdir == NULL)
 	{
 		err("gpiod: rules.d directory not found in %s", sysconfdir);
 		return -1;
 	}
 
-	int nbitems;
-	struct dirent **items;
-	nbitems = scandirat(rulesfd, ".", &items, NULL, alphasort);
-
-	int ret = 0;
-	int i;
-	for (i = 0; i < nbitems; i++)
+	int ret = -1;
+	struct dirent *item = NULL;
+	item = readdir(rulesdir);
+	if (item == NULL)
+		err("readdir %s", strerror(errno));
+	while(item != NULL)
 	{
-		if (items[i]->d_name[0] == '.')
+		if (item->d_name[0] == '.')
+		{
+			item = readdir(rulesdir);
 			continue;
+		}
 		char *filepath;
-		ret = asprintf(&filepath, "%s/%s/%s", sysconfdir, rulespath[rulesindex], items[i]->d_name);
+		ret = asprintf(&filepath, "%s/%s/%s", sysconfdir, rulespath[rulesindex], item->d_name);
 		if (ret > 0)
 		{
 			ret = rules_parse(filepath);
 			if (ret < 0)
+			{
+				err("error on %s", filepath);
+				free(filepath);
 				break;
+			}
 			free(filepath);
 		}
+		item = readdir(rulesdir);
 	}
+	closedir(rulesdir);
 	return ret;
 }
