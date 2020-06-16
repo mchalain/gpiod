@@ -159,7 +159,7 @@ void exec_run(void *arg, int chipid, int gpioid, struct gpiod_line_event *event)
 
 #ifdef USE_EXECVEAT
 		execveat(rootfd, cgipath, argv, env);
-#else
+#elif !defined(__UCLIBC__)
 		int scriptfd = openat(rootfd, cgipath, O_PATH);
 		close(rootfd);
 		if (scriptfd > 0)
@@ -167,6 +167,10 @@ void exec_run(void *arg, int chipid, int gpioid, struct gpiod_line_event *event)
 			dbg("gpiod: event %s %s", argv[0], argv[1]);
 			fexecve(scriptfd, argv, env);
 		}
+#elif defined(__USE_GNU)
+		execvpe(cgipath, argv, env);
+#else
+		execve(cgipath, argv, env);
 #endif
 		err("gpiod: cgi error: %s", strerror(errno));
 		exit(0);
