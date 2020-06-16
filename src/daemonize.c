@@ -1,8 +1,8 @@
 /*****************************************************************************
- * main.c
- * this file is part of https://github.com/ouistiti-project/putv
+ * deamonize.c
+ * this file is part of https://github.com/mchalain
  *****************************************************************************
- * Copyright (C) 2016-2017
+ * Copyright (C) 2016-2020
  *
  * Authors: Marc Chalain <marc.chalain@gmail.com>
  *
