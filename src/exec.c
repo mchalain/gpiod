@@ -45,7 +45,6 @@ struct exec_s
 	int rootfd;
 	char *cgipath;
 	char **env;
-	char *gpioname;
 };
 
 static const char str_rising[] = "rising";
@@ -171,7 +170,7 @@ void exec_run(void *arg, int chipid, int gpioid, struct gpiod_line_event *event)
 
 		if (faccessat(rootfd, cgipath, X_OK, 0))
 		{
-			err("exec %s not found", ctx->cgipath);
+			err("exec %s not found", cgipath);
 			exit(-1);
 		}
 
@@ -223,7 +222,5 @@ void exec_free(void *arg)
 	exec_t *ctx = (exec_t *)arg;
 	if (ctx->cgipath)
 		free(ctx->cgipath);
-	if (ctx->gpioname)
-		free(ctx->gpioname);
 	free(ctx);
 }
