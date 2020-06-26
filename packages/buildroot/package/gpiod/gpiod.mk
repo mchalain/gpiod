@@ -4,26 +4,25 @@
 #
 ################################################################################
 
-GPIOD_VERSION = 1.0
+GPIOD_VERSION = 1.1
 GPIOD_SITE = $(call github,mchalain,gpiod,$(GPIOD_VERSION))
+GPIOD_LICENSE = BSD
+GPIOD_LICENSE_FILES = LICENSE
 
-GPIOD_MAKE_OPTS+=prefix=/usr
-GPIOD_MAKE_OPTS+=sysconfdir=/etc/gpiod
-#GPIOD_MAKE_OPTS+=DEBUG=y
+PREFIX=/usr
+SYSCONFDIR=/etc/gpiod
 
-GPIOD_KCONFIG_FILE=$(GPIOD_PKGDIR)/gpiod_defconfig
-GPIOD_KCONFIG_EDITORS = config
-GPIOD_KCONFIG_OPTS = $(GPIOD_MAKE_OPTS)
+GPIOD_MAKE_OPTS = \
+	prefix=$(PREFIX) \
+	sysconfdir=$(SYSCONFDIR)
 
-GPIOD_DEPENDENCIES += libgpiod
-GPIOD_DEPENDENCIES += libconfig
+GPIOD_CONFIG_FILE=$(GPIOD_PKGDIR)/gpiod_defconfig
 
-define GPIOD_LIBCONFIG_OPTS
-	$(call KCONFIG_ENABLE_OPT,LIBCONFIG,$(@D)/.config)
-endef
+GPIOD_DEPENDENCIES = libgpiod libconfig
 
-define GPIOD_KCONFIG_FIXUP_CMDS
-	$(GPIOD_LIBCONFIG_OPTS)
+define GPIOD_CONFIGURE_CMDS
+	$(TARGET_CONFIGURE_OPTS) $(TARGET_MAKE_ENV) \
+		$(MAKE1) -C $(@D) $(GPIOD_MAKE_OPTS) $(GPIOD_CONFIG_FILE)
 endef
 
 define GPIOD_BUILD_CMDS
@@ -32,21 +31,22 @@ define GPIOD_BUILD_CMDS
 endef
 
 define GPIOD_INSTALL_TARGET_CMDS
-	$(INSTALL) -d -m 755 $(TARGET_DIR)/etc/gpiod/rules.d
+	$(INSTALL) -d -m 755 $(TARGET_DIR)$(SYSCONFDIR)/rules.d
 	$(MAKE) -C $(@D) $(GPIOD_MAKE_OPTS) \
-		DESTDIR="$(TARGET_DIR)" DEVINSTALL=n install
+		DESTDIR="$(TARGET_DIR)" install
 endef
 
 define GPIOD_INSTALL_INIT_SYSTEMD
-	$(INSTALL) -D -m 644 $(GPIOD_PKGDIR)/gpiod.service \
+	cp $(GPIOD_PKGDIR)/gpiod.service.in $(@D)/gpiod.service
+	$(SED) "s,@PREFIX@,$(PREFIX),g" $(@D)/gpiod.service
+	$(INSTALL) -D -m 644 $(@D)/gpiod.service \
 		$(TARGET_DIR)/usr/lib/systemd/system/gpiod.service
-	mkdir -p $(TARGET_DIR)/etc/systemd/system/multi-user.target.wants
-	ln -fs ../../../../usr/lib/systemd/system/gpiod.service \
-		$(TARGET_DIR)/etc/systemd/system/multi-user.target.wants/gpiod.service
 endef
 define GPIOD_INSTALL_INIT_SYSV
-	$(INSTALL) -D -m 755 $(GPIOD_PKGDIR)/S20gpiod \
+	cp $(GPIOD_PKGDIR)/S20gpiod.in $(@D)/S20gpiod
+	$(SED) "s,@PREFIX@,$(PREFIX),g" $(@D)/S20gpiod
+	$(INSTALL) -D -m 755 $(@D)/S20gpiod \
 		$(TARGET_DIR)/etc/init.d/S20gpiod
 endef
 
-$(eval $(kconfig-package))
+$(eval $(generic-package))

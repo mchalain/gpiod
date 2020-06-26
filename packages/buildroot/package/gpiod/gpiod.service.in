@@ -1,0 +1,11 @@
+[Unit]
+Description=GPIO event handler daemon
+
+[Service]
+Type=forking
+ExecStart=@PREFIX@/sbin/gpiod -D -p /var/run/gpiod.pid
+ExecStop=@PREFIX@/sbin/gpiod -K -p /var/run/gpiod.pid
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

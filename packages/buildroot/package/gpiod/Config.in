@@ -1,7 +1,7 @@
 config BR2_PACKAGE_GPIOD
 	bool "gpiod: gpio monitor daemon"
 	depends on BR2_USE_MMU
-	depends on BR2_TOOLCHAIN_HEADERS_AT_LEAST_4_8
+	depends on BR2_TOOLCHAIN_HEADERS_AT_LEAST_4_8 # libgpiod
 	select BR2_PACKAGE_LIBGPIOD
 	select BR2_PACKAGE_LIBCONFIG
 	help
@@ -9,6 +9,6 @@ config BR2_PACKAGE_GPIOD
 	  The daemon loads rules defining a gpio and
 	  the scripts to launch when the level of gpio changes.
 
-comment "gpiod: needs a toolchain w/ support of MMU and headers > 4.8"
+comment "gpiod needs a toolchain w/ kernel headers >= 4.8"
 	depends on !BR2_USE_MMU
 	depends on !BR2_TOOLCHAIN_HEADERS_AT_LEAST_4_8
