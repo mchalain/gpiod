@@ -58,6 +58,7 @@ struct gpio_handler_s
 	void *ctx;
 	int action;
 	handler_t handler;
+	free_ctx_t free;
 	gpio_handler_t *next;
 };
 
@@ -113,7 +114,7 @@ int gpiod_addchip(struct gpiod_chip *handle)
 	return chip->id;
 }
 
-int gpiod_addhandler(int gpioid, int action, void *ctx, handler_t callback)
+int gpiod_addhandler(int gpioid, int action, void *ctx, handler_t callback, free_ctx_t fcallbak)
 {
 	gpio_t *gpio = g_gpios;
 	while (gpio != NULL && gpio->id != gpioid) gpio = gpio->next;
@@ -127,6 +128,7 @@ int gpiod_addhandler(int gpioid, int action, void *ctx, handler_t callback)
 	handler = calloc(1, sizeof(*handler));
 	handler->ctx = ctx;
 	handler->handler = callback;
+	handler->free = fcallbak;
 	handler->action = action;
 	handler->next = gpio->handlers;
 	gpio->handlers = handler;
@@ -349,7 +351,7 @@ void gpiod_free()
 		while (handler != NULL)
 		{
 			gpio_handler_t *next = handler->next;
-			exec_free(handler->ctx);
+			handler->free(handler->ctx);
 			free(handler);
 			handler = next;
 		}

@@ -108,6 +108,7 @@ static int rules_parserule(config_setting_t *iterator)
 	{
 		void *ctx;
 		handler_t run;
+		free_ctx_t free;
 		int action;
 	} handlers[3];
 	int nhandlers = 0;
@@ -193,6 +194,7 @@ static int rules_parserule(config_setting_t *iterator)
 		{
 			handlers[nhandlers].ctx = exec_create(g_rootfd, exec, env, nbenvs);
 			handlers[nhandlers].run = &exec_run;
+			handlers[nhandlers].free = &exec_free;
 			if (handlers[nhandlers].ctx != NULL)
 				nhandlers++;
 		}
@@ -203,6 +205,7 @@ static int rules_parserule(config_setting_t *iterator)
 		{
 			handlers[nhandlers].ctx = rules_ledrule(chiphandle, led, 0);
 			handlers[nhandlers].run = &led_run;
+			handlers[nhandlers].free = &led_free;
 			if (handlers[nhandlers].ctx != NULL)
 				nhandlers++;
 		}
@@ -211,6 +214,7 @@ static int rules_parserule(config_setting_t *iterator)
 		{
 			handlers[nhandlers].ctx = rules_ledrule(chiphandle, led, 1);
 			handlers[nhandlers].run = &led_run;
+			handlers[nhandlers].free = &led_free;
 			if (handlers[nhandlers].ctx != NULL)
 				nhandlers++;
 		}
@@ -223,7 +227,7 @@ static int rules_parserule(config_setting_t *iterator)
 		int j = 0;
 		while (gpioid[j] > -1)
 		{
-			ret = gpiod_addhandler(gpioid[j], handlers[i].action, handlers[i].ctx, handlers[i].run);
+			ret = gpiod_addhandler(gpioid[j], handlers[i].action, handlers[i].ctx, handlers[i].run, handlers[i].free);
 			j++;
 		}
 	}
