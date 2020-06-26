@@ -15,7 +15,7 @@ gpiod_SOURCES+=led.c
 gpiod_SOURCES-$(LIBCONFIG)+=rules_conf.c
 gpiod_LIBS+=gpiod
 gpiod_LIBS-$(LIBCONFIG)+=config
-gpiod_CFLAGS-$(DEBUG)+=-DDEBUG
+gpiod_CFLAGS-$(DEBUG)+=-DDEBUG -g
 
 bin-$(TEST)+=test_gpiomonitor
 test_gpiomonitor_SOURCES+=gpiomonitor.c
