@@ -39,6 +39,7 @@
 #include "gpiomonitor.h"
 #include "exec.h"
 #include "led.h"
+#include "export.h"
 #include "rules.h"
 
 static int g_rootfd = AT_FDCWD;
@@ -61,6 +62,25 @@ static void *rules_ledrule(struct gpiod_chip *chiphandle, config_setting_t *led,
 	{
 		ctx = led_create(handle, bled);
 	}
+	return ctx;
+}
+
+static void *rules_exportrule(int gpioid, config_setting_t *export)
+{
+	void *ctx = NULL;
+	const char *url = NULL;
+	const char *format = "raw";
+	if (config_setting_type(export) == CONFIG_TYPE_STRING)
+	{
+		url = config_setting_get_string(export);
+	}
+	else if (config_setting_is_group(export))
+	{
+		config_setting_lookup_string(export, "url", &url);
+		config_setting_lookup_string(export, "format", &format);
+	}
+	if (url != NULL)
+		ctx = export_create(g_rootfd, url, format);
 	return ctx;
 }
 
@@ -268,6 +288,17 @@ static int rules_parserule(config_setting_t *iterator)
 			handlers[nhandlers].ctx = rules_ledrule(chiphandle, led, 1);
 			handlers[nhandlers].run = &led_run;
 			handlers[nhandlers].free = &led_free;
+			if (handlers[nhandlers].ctx != NULL)
+				nhandlers++;
+		}
+
+		config_setting_t *export;
+		export = config_setting_lookup(iterator, "export");
+		if (export != NULL)
+		{
+			handlers[nhandlers].ctx = rules_exportrule(gpioid[0], export);
+			handlers[nhandlers].run = &export_run;
+			handlers[nhandlers].free = &export_free;
 			if (handlers[nhandlers].ctx != NULL)
 				nhandlers++;
 		}
