@@ -176,11 +176,11 @@ void exec_run(void *arg, int chipid, int gpioid, struct gpiod_line_event *event)
 
 		/**
 		 * on some system the setsid is not enough
-		 * the parent must wait the clild.
+		 * the parent must wait the child.
 		 * With a second fork, the third process will live alone,
 		 * and the parent wait only the second one.
 		 */
-		if (vfork() > 0)
+		if (vfork() != 0)
 			exit(0);
 
 #ifdef USE_EXECVEAT
@@ -188,7 +188,7 @@ void exec_run(void *arg, int chipid, int gpioid, struct gpiod_line_event *event)
 #elif !defined(__UCLIBC__)
 		int scriptfd = openat(rootfd, cgipath, O_PATH);
 		close(rootfd);
-		if (scriptfd > 0)
+		if (scriptfd != -1)
 		{
 			dbg("gpiod: event %s %s", argv[0], argv[1]);
 			fexecve(scriptfd, argv, env);
