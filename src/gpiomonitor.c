@@ -66,6 +66,7 @@ typedef struct gpio_s gpio_t;
 struct gpio_s
 {
 	struct gpiod_line *handle;
+	struct gpiod_line_request_config config;
 	char *name;
 	struct pollfd *poll_set;
 	gpio_t *next;
@@ -115,34 +116,6 @@ int gpiod_addchip(struct gpiod_chip *handle)
 	return chip->id;
 }
 
-int gpiod_addhandler(int gpioid, int action, void *ctx, handler_t callback, free_ctx_t fcallbak)
-{
-	gpio_t *gpio = g_gpios;
-	while (gpio != NULL && gpio->id != gpioid) gpio = gpio->next;
-	if (gpio == NULL)
-	{
-		err("gpiod: set handler, gpio %d not found", gpioid);
-		return -1;
-	}
-
-	gpio_handler_t *handler = NULL;
-	handler = calloc(1, sizeof(*handler));
-	handler->ctx = ctx;
-	handler->handler = callback;
-	handler->free = fcallbak;
-	handler->action = action;
-	handler->next = gpio->handlers;
-	gpio->handlers = handler;
-
-	return 0;
-}
-
-static struct gpiod_line_request_config config = {
-	.consumer = str_gpiod,
-	.request_type = GPIOD_LINE_REQUEST_EVENT_BOTH_EDGES,
-	.flags = 0,
-};
-
 int gpiod_setline(int chipid, struct gpiod_line *handle, const char *name)
 {
 	uint32_t handleflags = 0;
@@ -174,16 +147,21 @@ int gpiod_setline(int chipid, struct gpiod_line *handle, const char *name)
 		err("gpiod: line %d already used by %s", gpiod_line_offset(handle), consumer);
 		return -1;
 	}
-	if (gpiod_line_request(handle, &config, 0) < 0)
-	{
-		err("gpiod: request line %d error", gpiod_line_offset(handle));
-		return -1;
-	}
-
 	gpio_t *gpio = calloc(1, sizeof(*gpio));
 	gpio->chipid = chip->id;
 	gpio->handle = handle;
+	gpio->config.consumer = str_gpiod;
+	gpio->config.request_type = GPIOD_LINE_REQUEST_EVENT_BOTH_EDGES;
+	gpio->config.flags = 0;
+
+	if (gpiod_line_request(gpio->handle, &gpio->config, 0) < 0)
+	{
+		err("gpiod: request line %d error", gpiod_line_offset(handle));
+		free(gpio);
+		return -1;
+	}
 	gpio->fd = gpiod_line_event_get_fd(gpio->handle);
+
 	if (name == NULL)
 		name = gpiod_line_name(handle);
 	if (name != NULL)
@@ -195,6 +173,28 @@ int gpiod_setline(int chipid, struct gpiod_line *handle, const char *name)
 	g_gpios = gpio;
 
 	return gpio->id;
+}
+
+int gpiod_addhandler(int gpioid, int action, void *ctx, handler_t callback, free_ctx_t fcallbak)
+{
+	gpio_t *gpio = g_gpios;
+	while (gpio != NULL && gpio->id != gpioid) gpio = gpio->next;
+	if (gpio == NULL)
+	{
+		err("gpiod: set handler, gpio %d not found", gpioid);
+		return -1;
+	}
+
+	gpio_handler_t *handler = NULL;
+	handler = calloc(1, sizeof(*handler));
+	handler->ctx = ctx;
+	handler->handler = callback;
+	handler->free = fcallbak;
+	handler->action = action;
+	handler->next = gpio->handlers;
+	gpio->handlers = handler;
+
+	return 0;
 }
 
 const char *gpiod_name(int gpioid)
