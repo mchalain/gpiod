@@ -70,7 +70,7 @@ static struct gpiod_line *rules_gpio_by_line(config_setting_t *iterator, struct 
 	int line = -1;
 	if (config_setting_is_number(iterator))
 		line = config_setting_get_int(iterator);
-	else if (config_setting_is_number(iterator))
+	else if (config_setting_type(iterator) == CONFIG_TYPE_STRING)
 	{
 		line = strtol(config_setting_get_string(iterator), NULL, 10);
 	}
@@ -118,6 +118,16 @@ static int rules_parserule(config_setting_t *iterator)
 		const char *chipname = NULL;
 		struct gpiod_chip *chiphandle = NULL;
 		const char *device = NULL;
+
+		/**
+		 * gpiochip is mandatory
+		 * It may be find with the "device" path or by "chipname"
+		 * The chipname is available from the device tree
+		 * Example:
+		 *  device = "/dev/gpiochip0";
+		 * or
+		 *  chipname = "gpio0";
+		 */
 		config_setting_lookup_string(iterator, "device", &device);
 		if (device != NULL)
 		{
@@ -137,7 +147,25 @@ static int rules_parserule(config_setting_t *iterator)
 			err("gpiod: chip not found");
 			return -1;
 		}
+		/**
+		 * The GPIO chip is ready
+		 */
 
+		/**
+		 * Set the line of the GPIO chip to attach the handlers.
+		 * Look for the line by its number or by the name available
+		 * in the device tree.
+		 * Example
+		 *  name = "gpio0_1";
+		 * or
+		 *  line = "1";
+		 * or
+		 *  line = 1;
+		 * or
+		 *  lines = [1, 2, 3];
+		 * or
+		 *  lines = ["1","2","3"];
+		 */
 		const char *name = NULL;
 		config_setting_lookup_string(iterator, "name", &name);
 		gpioid[ngpioids] = rules_getgpio(config_setting_lookup(iterator, "line"),
@@ -158,7 +186,30 @@ static int rules_parserule(config_setting_t *iterator)
 					ngpioids++;
 			}
 		}
+		/**
+		 * At least gpio line is set
+		 */
 
+		/**
+		 * Configure the handler to attach to the gpio line.
+		 * Three kinds of handler are available:
+		 *  - exec: to launch an application
+		 *  - led: to change the state of an output GPIO
+		 *  - bled: to add a blink handler on an output GPIO
+		 * Warning: led and bled state change on each event
+		 * The action may be:
+		 *  - falling
+		 *  - rising
+		 *  - the both
+		 * Example:
+		 *  action = "rising";
+		 *  exec = "/usr/bin/mytest";
+		 * or
+		 *  action = "both"
+		 *  led = 4;
+		 * or
+		 *  bled = "gpio0_4";
+		 */
 		handlers[nhandlers].action = GPIOD_LINE_EVENT_RISING_EDGE | GPIOD_LINE_EVENT_FALLING_EDGE;
 		config_setting_t *action;
 		action = config_setting_lookup(iterator, "action");
@@ -178,6 +229,8 @@ static int rules_parserule(config_setting_t *iterator)
 					handlers[nhandlers].action = GPIOD_LINE_EVENT_FALLING_EDGE;
 				if (!strcmp(string, "rising"))
 					handlers[nhandlers].action = GPIOD_LINE_EVENT_RISING_EDGE;
+				if (!strcmp(string, "both"))
+					handlers[nhandlers].action = GPIOD_LINE_EVENT_RISING_EDGE | GPIOD_LINE_EVENT_FALLING_EDGE;
 			break;
 			}
 			if (handlers[nhandlers].action < 0 ||
@@ -227,7 +280,7 @@ static int rules_parserule(config_setting_t *iterator)
 		int j = 0;
 		while (gpioid[j] > -1)
 		{
-			ret = gpiod_addhandler(gpioid[j], handlers[i].action, handlers[i].ctx, handlers[i].run, handlers[i].free);
+			ret = gpiod_addhandler(gpioid[j], handlers[0].action, handlers[i].ctx, handlers[i].run, handlers[i].free);
 			j++;
 		}
 	}
@@ -281,6 +334,7 @@ static const char *rulespath[] =
 	"gpiod.d",
 	NULL
 };
+
 int rules_set(const char *sysconfdir)
 {
 	DIR *rulesdir = NULL;
@@ -288,8 +342,8 @@ int rules_set(const char *sysconfdir)
 	while (rulespath[rulesindex] != NULL)
 	{
 		char *path = NULL;
-		asprintf(&path, "%s/%s", sysconfdir, rulespath[rulesindex]);
-		if (path == NULL)
+		if (asprintf(&path, "%s/%s", sysconfdir, rulespath[rulesindex]) == -1 ||
+			 path == NULL)
 			break;
 		rulesdir = opendir(path);
 		free(path);
