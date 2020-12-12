@@ -71,6 +71,7 @@ struct gpio_s
 	gpio_t *next;
 	gpio_handler_t *handlers;
 	int id;
+	int fd;
 	int chipid;
 	int last;
 };
@@ -182,6 +183,7 @@ int gpiod_setline(int chipid, struct gpiod_line *handle, const char *name)
 	gpio_t *gpio = calloc(1, sizeof(*gpio));
 	gpio->chipid = chip->id;
 	gpio->handle = handle;
+	gpio->fd = gpiod_line_event_get_fd(gpio->handle);
 	if (name == NULL)
 		name = gpiod_line_name(handle);
 	if (name != NULL)
@@ -230,8 +232,7 @@ static int gpiod_setpoll(struct pollfd *poll_set, int numpoll)
 		{
 			if (! (gpio->last & DEBOUNCING))
 			{
-				//poll_set[numfds].fd = gpio->fd;
-				poll_set[numfds].fd = gpiod_line_event_get_fd(gpio->handle);
+				poll_set[numfds].fd = gpio->fd;
 				poll_set[numfds].events = POLLIN | POLLPRI;
 				poll_set[numfds].revents = 0;
 				gpio->poll_set = &poll_set[numfds];
@@ -246,6 +247,11 @@ static int gpiod_setpoll(struct pollfd *poll_set, int numpoll)
 	}
 	mutex_unlock(&g_gpios->lock);
 	return numfds;
+}
+
+static int gpiod_readevent(gpio_t *gpio, struct gpiod_line_event *event)
+{
+	return gpiod_line_event_read(gpio->handle, event);
 }
 
 static int gpiod_dispatch(gpio_t *gpio, struct gpiod_line_event *event)
@@ -275,6 +281,7 @@ static int gpiod_dispatch(gpio_t *gpio, struct gpiod_line_event *event)
 	}
 	return 1;
 }
+
 static int gpiod_check()
 {
 	gpio_t *gpio = g_gpios;
@@ -319,7 +326,7 @@ int gpiod_monitor()
 				if (gpio->poll_set->revents != 0)
 				{
 					struct gpiod_line_event event;
-					ret = gpiod_line_event_read(gpio->handle, &event);
+					ret = gpiod_readevent(gpio, &event);
 					if (ret < 0)
 						break;
 					ret += gpiod_dispatch(gpio, &event);
