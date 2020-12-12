@@ -16,13 +16,13 @@ GPIOD_MAKE_OPTS = \
 	prefix=$(PREFIX) \
 	sysconfdir=$(SYSCONFDIR)
 
-GPIOD_CONFIG_FILE=$(GPIOD_PKGDIR)/gpiod_defconfig
-
-GPIOD_DEPENDENCIES = libgpiod libconfig
+GPIOD_DEPENDENCIES = \
+	libgpiod \
+	libconfig
 
 define GPIOD_CONFIGURE_CMDS
 	$(TARGET_CONFIGURE_OPTS) $(TARGET_MAKE_ENV) \
-		$(MAKE1) -C $(@D) $(GPIOD_MAKE_OPTS) $(GPIOD_CONFIG_FILE)
+		$(MAKE1) -C $(@D) $(GPIOD_MAKE_OPTS) defconfig
 endef
 
 define GPIOD_BUILD_CMDS
