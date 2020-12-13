@@ -67,15 +67,11 @@ struct export_s
 };
 
 static int export_format_raw(const export_t *ctx, int socket, export_event_t *event);
+static int export_format_json(const export_t *ctx, int socket, export_event_t *event);
 
 static const char str_rising[] = "rising";
 static const char str_falling[] = "falling";
 static const char str_empty[] = "";
-#define NUMENVS 3
-static const char str_GPIOENV[] = "GPIO=%.2d";
-static const char str_CHIPENV[] = "CHIP=%.2d";
-static const char str_NAMEENV[] = "NAME=%s";
-static const char str_ACTIONENV[] = "ACTION=%s     ";
 
 static void *export_thread(void * arg)
 {
@@ -116,6 +112,10 @@ void *export_create(int rootfd, const char *url, const char *format)
 	{
 		ctx->format = &export_format_raw;
 	}
+	if (!strcmp(format, "json"))
+	{
+		ctx->format = &export_format_json;
+	}
 	pthread_cond_init(&ctx->cond, NULL);
 	pthread_mutex_init(&ctx->mutex, NULL);
 	pthread_create(&ctx->thread, NULL, export_thread, ctx);
@@ -125,6 +125,18 @@ void *export_create(int rootfd, const char *url, const char *format)
 
 static int export_format_raw(const export_t *ctx, int socket, export_event_t *event)
 {
+	return write(socket, &event->event, sizeof(event->event));
+}
+
+static int export_format_json(const export_t *ctx, int socket, export_event_t *event)
+{
+	dprintf(socket,
+			"{\"chip\" = \"%.2d\";\n" \
+			"\"gpio\" = \"%.2d\";\n" \
+			"\"name\" = \"%s\";\n" \
+			"\"status\" = \"%s\";}",
+			event->chipid, gpiod_line(event->gpioid), gpiod_name(event->gpioid),
+			(event->event.event_type == GPIOD_LINE_EVENT_RISING_EDGE)? str_rising: str_falling);
 	return write(socket, &event->event, sizeof(event->event));
 }
 
