@@ -14,7 +14,7 @@ gpiod_SOURCES+=exec.c
 gpiod_SOURCES+=led.c
 gpiod_SOURCES+=export.c
 gpiod_SOURCES-$(LIBCONFIG)+=rules_conf.c
-gpiod_LIBS+=gpiod
+gpiod_LIBS+=gpiod pthread
 gpiod_LIBS-$(LIBCONFIG)+=config
 gpiod_CFLAGS-$(DEBUG)+=-DDEBUG -g
 
