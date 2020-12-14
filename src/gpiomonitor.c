@@ -197,6 +197,20 @@ int gpiod_addhandler(int gpioid, int action, void *ctx, handler_t callback, free
 	return 0;
 }
 
+const char *gpiod_chipname(int chipid)
+{
+	gpiochip_t *chip = g_gpiochip;
+	while (chip != NULL)
+	{
+		if (chip->id == chipid)
+			break;
+		chip = chip->next;
+	}
+	if (chip != NULL)
+		return gpiod_chip_label(chip->handle);
+	return NULL;
+}
+
 const char *gpiod_name(int gpioid)
 {
 	gpio_t *gpio = g_gpios;
