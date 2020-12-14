@@ -246,6 +246,14 @@ int gpiod_state(int gpioid)
 	return gpiod_line_get_value(gpio->handle);
 }
 
+int gpiod_chipid(int gpioid)
+{
+	gpio_t *gpio = gpiod_search(gpioid);
+	if (gpio == NULL)
+		return -1;
+	return gpio->chipid;
+}
+
 static int gpiod_setpoll(struct pollfd *poll_set, int numpoll)
 {
 	int numfds = 0;
