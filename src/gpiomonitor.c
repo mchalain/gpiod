@@ -238,6 +238,14 @@ int gpiod_line(int gpioid)
 	return gpiod_line_offset(gpio->handle);
 }
 
+int gpiod_state(int gpioid)
+{
+	gpio_t *gpio = gpiod_search(gpioid);
+	if (gpio == NULL)
+		return -1;
+	return gpiod_line_get_value(gpio->handle);
+}
+
 static int gpiod_setpoll(struct pollfd *poll_set, int numpoll)
 {
 	int numfds = 0;

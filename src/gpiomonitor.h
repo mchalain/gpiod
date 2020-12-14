@@ -44,6 +44,7 @@ int gpiod_addhandler(int gpioid, int action, void *ctx, handler_t callback, free
 int gpiod_setline(int chipid, struct gpiod_line *handle, const char *name);
 const char *gpiod_name(int gpioid);
 int gpiod_line(int gpioid);
+int gpiod_state(int gpioid);
 int gpiod_monitor();
 void gpiod_stop();
 void gpiod_free();
