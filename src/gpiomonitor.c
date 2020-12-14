@@ -197,6 +197,17 @@ int gpiod_addhandler(int gpioid, int action, void *ctx, handler_t callback, free
 	return 0;
 }
 
+static gpio_t *gpiod_search(int gpioid)
+{
+	gpio_t *gpio = g_gpios;
+	while (gpio != NULL && gpio->id != gpioid) gpio = gpio->next;
+	if (gpio == NULL)
+	{
+		err("gpiod: gpio %d not found", gpioid);
+	}
+	return gpio;
+}
+
 const char *gpiod_chipname(int chipid)
 {
 	gpiochip_t *chip = g_gpiochip;
@@ -213,25 +224,17 @@ const char *gpiod_chipname(int chipid)
 
 const char *gpiod_name(int gpioid)
 {
-	gpio_t *gpio = g_gpios;
-	while (gpio != NULL && gpio->id != gpioid) gpio = gpio->next;
+	gpio_t *gpio = gpiod_search(gpioid);
 	if (gpio == NULL)
-	{
-		err("gpiod: gpio %d not found", gpioid);
 		return NULL;
-	}
 	return gpio->name;
 }
 
 int gpiod_line(int gpioid)
 {
-	gpio_t *gpio = g_gpios;
-	while (gpio != NULL && gpio->id != gpioid) gpio = gpio->next;
+	gpio_t *gpio = gpiod_search(gpioid);
 	if (gpio == NULL)
-	{
-		err("gpiod: gpio %d not found", gpioid);
 		return -1;
-	}
 	return gpiod_line_offset(gpio->handle);
 }
 
