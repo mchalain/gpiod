@@ -186,8 +186,26 @@ static int export_accept_fifo(export_t *ctx)
 		export_freeevents(ctx);
 		/// create an event with the current status of the line
 		export_status(ctx);
-		/// start the loop to trigg the events
-		export_threadevent(ctx);
+		if (gpiod_eventable(ctx->default_event.gpioid))
+		{
+			/// start the loop to trigg the events
+			export_threadevent(ctx);
+		}
+		else
+		{
+			/// send only the current status and die
+			pthread_mutex_lock(&ctx->mutex);
+			while (ctx->events != NULL)
+			{
+				ctx->format(ctx, ctx->socket, ctx->events);
+				ctx->events = ctx->events->next;
+			}
+			pthread_mutex_unlock(&ctx->mutex);
+			close(ctx->socket);
+			ctx->socket = -1;
+			/// cat try to read several time if closing is too fast
+			usleep(200000);
+		}
 	}
 	else
 		err("gpiod: open %s %s", ctx->url + 7, strerror(errno));
@@ -230,7 +248,8 @@ static void export_freeevents(export_t *ctx)
 void export_free(void *arg)
 {
 	export_t *ctx = (export_t *)arg;
-	close(ctx->socket);
+	if (ctx->socket >= 0)
+		close(ctx->socket);
 	pthread_cond_destroy(&ctx->cond);
 	pthread_mutex_destroy(&ctx->mutex);
 	export_freeevents(ctx);
