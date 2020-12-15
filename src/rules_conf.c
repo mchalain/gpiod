@@ -84,37 +84,50 @@ static void *rules_exportrule(int gpioid, config_setting_t *export)
 	return ctx;
 }
 
-static struct gpiod_line *rules_gpio_by_line(config_setting_t *iterator, struct gpiod_chip *chiphandle)
-{
-	struct gpiod_line *handle = NULL;
-	int line = -1;
-	if (config_setting_is_number(iterator))
-		line = config_setting_get_int(iterator);
-	else if (config_setting_type(iterator) == CONFIG_TYPE_STRING)
-	{
-		line = strtol(config_setting_get_string(iterator), NULL, 10);
-	}
-	if (line > -1 && chiphandle != NULL)
-	{
-		handle = gpiod_chip_get_line(chiphandle, line);
-	}
-	return handle;
-}
-
 int rules_getgpio(config_setting_t *gpiosetting, int chipid, struct gpiod_chip *chiphandle, const char *name)
 {
 	int gpioid = -1;
+	int options = 0;
 	struct gpiod_line *handle = NULL;
 
 	if (handle == NULL && gpiosetting != NULL)
-		handle = rules_gpio_by_line(gpiosetting, chiphandle);
+	{
+		int line = -1;
+		if (config_setting_is_number(gpiosetting))
+			line = config_setting_get_int(gpiosetting);
+		else if (config_setting_type(gpiosetting) == CONFIG_TYPE_STRING)
+		{
+			line = strtol(config_setting_get_string(gpiosetting), NULL, 10);
+		}
+		else if (config_setting_is_group(gpiosetting))
+		{
+			config_setting_lookup_int(gpiosetting, "offset", &line);
+
+			config_setting_lookup_string(gpiosetting, "name", &name);
+
+			int default_direction = 0;
+			config_setting_lookup_bool(gpiosetting, "default", &default_direction);
+			if (default_direction)
+				options |= GPIOD_LINE_OPTION_DEFAULT;
+
+			int output = 0;
+			config_setting_lookup_bool(gpiosetting, "output", &output);
+			if (output)
+				options |= GPIOD_LINE_OPTION_OUTPUT;
+		}
+
+		if (line > -1 && chiphandle != NULL)
+		{
+			handle = gpiod_chip_get_line(chiphandle, line);
+		}
+	}
 
 	if (handle == NULL && name != NULL)
 		handle = gpiod_chip_find_line(chiphandle, name);
 
 	if (handle != NULL)
 	{
-		gpioid = gpiod_setline(chipid, handle, name);
+		gpioid = gpiod_setline(chipid, handle, name, options);
 	}
 	return gpioid;
 }

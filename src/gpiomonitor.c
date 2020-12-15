@@ -116,7 +116,7 @@ int gpiod_addchip(struct gpiod_chip *handle)
 	return chip->id;
 }
 
-int gpiod_setline(int chipid, struct gpiod_line *handle, const char *name)
+int gpiod_setline(int chipid, struct gpiod_line *handle, const char *name, int options)
 {
 	uint32_t handleflags = 0;
 	gpiochip_t *chip = g_gpiochip;
@@ -152,6 +152,16 @@ int gpiod_setline(int chipid, struct gpiod_line *handle, const char *name)
 	gpio->handle = handle;
 	gpio->config.consumer = str_gpiod;
 	gpio->config.request_type = GPIOD_LINE_REQUEST_EVENT_BOTH_EDGES;
+	if ((options & GPIOD_LINE_OPTION_DEFAULT) &&
+		(gpiod_line_direction(handle) == GPIOD_LINE_DIRECTION_OUTPUT))
+	{
+		options |= GPIOD_LINE_OPTION_OUTPUT;
+	}
+	if (options & GPIOD_LINE_OPTION_OUTPUT)
+	{
+		warn("gpiod: gpio %d output direction", gpiod_line_offset(gpio->handle));
+		gpio->config.request_type = GPIOD_LINE_REQUEST_DIRECTION_OUTPUT;
+	}
 	gpio->config.flags = 0;
 
 	if (gpiod_line_request(gpio->handle, &gpio->config, 0) < 0)

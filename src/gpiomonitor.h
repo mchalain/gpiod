@@ -34,6 +34,9 @@
 #define MAX_GPIOS 64
 #endif
 
+#define GPIOD_LINE_OPTION_DEFAULT 0x01
+#define GPIOD_LINE_OPTION_OUTPUT 0x02
+
 typedef void (*handler_t)(void *ctx, int chipid, int line, struct gpiod_line_event *event);
 typedef void (*free_ctx_t)(void *ctx);
 
@@ -41,13 +44,12 @@ int gpiod_addchip(struct gpiod_chip *handle);
 const char *gpiod_chipname(int chipid);
 
 int gpiod_addhandler(int gpioid, int action, void *ctx, handler_t callback, free_ctx_t fcallbak);
-int gpiod_setline(int chipid, struct gpiod_line *handle, const char *name);
+int gpiod_setline(int chipid, struct gpiod_line *handle, const char *name, int options);
 const char *gpiod_name(int gpioid);
 int gpiod_line(int gpioid);
 int gpiod_state(int gpioid);
 int gpiod_chipid(int gpioid);
 int gpiod_eventable(int gpioid);
-
 int gpiod_monitor();
 void gpiod_stop();
 void gpiod_free();
