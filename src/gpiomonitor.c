@@ -156,9 +156,16 @@ int gpiod_setline(int chipid, struct gpiod_line *handle, const char *name)
 
 	if (gpiod_line_request(gpio->handle, &gpio->config, 0) < 0)
 	{
-		err("gpiod: request line %d error", gpiod_line_offset(handle));
-		free(gpio);
-		return -1;
+		gpio->config.request_type = GPIOD_LINE_REQUEST_DIRECTION_INPUT;
+		if (gpiod_line_request(gpio->handle, &gpio->config, 0) < 0)
+		{
+			err("gpiod: request line %d error %s", gpiod_line_offset(handle), strerror(errno));
+			free(gpio);
+			return -1;
+		}
+		else
+			warn("gpiod: request line %d in polling mode", gpiod_line_offset(handle));
+
 	}
 	gpio->fd = gpiod_line_event_get_fd(gpio->handle);
 
