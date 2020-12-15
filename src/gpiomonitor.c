@@ -298,7 +298,16 @@ static int gpiod_setpoll(struct pollfd *poll_set, int numpoll)
 
 static int gpiod_readevent(gpio_t *gpio, struct gpiod_line_event *event)
 {
-	return gpiod_line_event_read(gpio->handle, event);
+	int ret;
+	if (gpio->config.request_type == GPIOD_LINE_REQUEST_DIRECTION_INPUT)
+	{
+		clock_gettime( CLOCK_REALTIME, &event->ts);
+		/// the type is managed by the dispatcher
+		event->event_type = -1;
+	}
+	else
+		ret = gpiod_line_event_read(gpio->handle, event);
+	return ret;
 }
 
 static int gpiod_dispatch(gpio_t *gpio, struct gpiod_line_event *event)
@@ -344,6 +353,7 @@ int gpiod_monitor()
 {
 	struct pollfd poll_set[MAX_GPIOS];
 	int numfds = 0;
+	/// first debouncing is 0 to send the current status
 	int debouncing = 0;
 
 #ifdef SETPOLL_ONCE
@@ -364,13 +374,19 @@ int gpiod_monitor()
 #endif
 		ret = poll(poll_set, numfds, debouncing);
 		debouncing = -1;
-		if (ret > 0)
+		if (ret >= 0)
 		{
 			ret = 0;
 			gpio_t *gpio = g_gpios;
 			while (gpio != NULL)
 			{
-				if (gpio->poll_set->revents != 0)
+				int revents = gpio->poll_set->revents;
+				if (gpio->config.request_type == GPIOD_LINE_REQUEST_DIRECTION_INPUT)
+				{
+					debouncing = 500;
+					revents = 1;
+				}
+				if (revents != 0)
 				{
 					struct gpiod_line_event event;
 					if (gpiod_readevent(gpio, &event) == 0)
