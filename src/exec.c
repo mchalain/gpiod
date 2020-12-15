@@ -166,7 +166,6 @@ void exec_run(void *arg, int chipid, int gpioid, struct gpiod_line_event *event)
 		 */
 		int rootfd = ctx->rootfd;
 		char *cgipath = argv[0];
-		gpiod_free();
 
 		if (faccessat(rootfd, cgipath, X_OK, 0))
 		{
