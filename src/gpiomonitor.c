@@ -373,11 +373,11 @@ int gpiod_monitor()
 				if (gpio->poll_set->revents != 0)
 				{
 					struct gpiod_line_event event;
-					ret = gpiod_readevent(gpio, &event);
-					if (ret < 0)
-						break;
-					ret += gpiod_dispatch(gpio, &event);
-					gpio->poll_set->revents = 0;
+					if (gpiod_readevent(gpio, &event) == 0)
+					{
+						ret += gpiod_dispatch(gpio, &event);
+						gpio->poll_set->revents = 0;
+					}
 				}
 				gpio = gpio->next;
 			}
