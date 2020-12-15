@@ -28,7 +28,7 @@
 #ifndef __EXPORT_H__
 #define __EXPORT_H__
 
-void *export_create(int rootfd, const char *url, const char *format);
+void *export_create(int rootfd, const char *url, const char *format, int gpioid);
 void export_run(void *arg, int chipid, int gpioid, struct gpiod_line_event *event);
 void export_free(void *arg);
 

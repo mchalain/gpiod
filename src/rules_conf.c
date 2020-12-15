@@ -80,7 +80,7 @@ static void *rules_exportrule(int gpioid, config_setting_t *export)
 		config_setting_lookup_string(export, "format", &format);
 	}
 	if (url != NULL)
-		ctx = export_create(g_rootfd, url, format);
+		ctx = export_create(g_rootfd, url, format, gpioid);
 	return ctx;
 }
 
