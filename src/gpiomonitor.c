@@ -276,7 +276,8 @@ int gpiod_eventable(int gpioid)
 	gpio_t *gpio = gpiod_search(gpioid);
 	if (gpio == NULL)
 		return -1;
-	return !(gpio->config.request_type == GPIOD_LINE_REQUEST_DIRECTION_INPUT);
+	return !((gpio->config.request_type == GPIOD_LINE_REQUEST_DIRECTION_INPUT) ||
+		(gpio->config.request_type == GPIOD_LINE_REQUEST_DIRECTION_INPUT));
 }
 static int gpiod_setpoll(struct pollfd *poll_set, int numpoll)
 {
