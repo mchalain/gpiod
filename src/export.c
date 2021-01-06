@@ -218,6 +218,8 @@ void export_run(void *arg, int chipid, int gpioid, struct gpiod_line_event *even
 
 	pthread_mutex_lock(&ctx->mutex);
 	export_event_t *new = calloc(1, sizeof(*new));
+	new->chipid = chipid;
+	new->gpioid = gpioid;
 	memcpy(&new->event, event, sizeof(new->event));
 	export_event_t *old = ctx->events;
 	if (old == NULL)
