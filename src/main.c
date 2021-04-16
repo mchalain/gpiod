@@ -37,11 +37,11 @@
 #include "rules.h"
 #include "daemonize.h"
 
-#define PACKAGEVERSION PACKAGE "/" VERSION
+#define PACKAGEVERSION PACKAGE_NAME "/" PACKAGE_VERSION
 
 void display_help(char * const *argv)
 {
-	fprintf(stderr, PACKAGE" "VERSION" build: "__DATE__" "__TIME__"\n");
+	fprintf(stderr, PACKAGE_NAME" "PACKAGE_VERSION" build: "__DATE__" "__TIME__"\n");
 	fprintf(stderr, "\n");
 	fprintf(stderr, "%s [-h][-D][-K]\n", argv[0]);
 	fprintf(stderr, "\t-h \t\tshow this help and exit\n");
