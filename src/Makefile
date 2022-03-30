@@ -16,7 +16,7 @@ gpiod_SOURCES+=export.c
 gpiod_SOURCES-$(LIBCONFIG)+=rules_conf.c
 gpiod_LIBS+=gpiod pthread
 gpiod_LIBS-$(LIBCONFIG)+=config
-gpiod_CFLAGS-$(DEBUG)+=-DDEBUG -g
+gpiod_CFLAGS-$(DEBUG)+=-DDEBUG -g -O0
 
 bin-$(TEST)+=test_gpiomonitor
 test_gpiomonitor_SOURCES+=gpiomonitor.c
