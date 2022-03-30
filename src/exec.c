@@ -53,8 +53,8 @@ static const char str_empty[] = "";
 #define NUMENVS 3
 static const char str_GPIOENV[] = "GPIO=%.2d";
 static const char str_CHIPENV[] = "CHIP=%.2d";
-static const char str_NAMEENV[] = "NAME=%s";
-static const char str_ACTIONENV[] = "ACTION=%s     ";
+static const char str_NAMEENV[] = "NAME=%.18s";
+static const char str_ACTIONENV[] = "ACTION=%.7s";
 
 void *exec_create(int rootfd, const char *cgipath, char **env, int nbenvs)
 {
@@ -69,13 +69,12 @@ void *exec_create(int rootfd, const char *cgipath, char **env, int nbenvs)
 		err("exec %s not found", cgipath);
 		return NULL;
 	}
-	ctx->env = calloc(nbenvs + NUMENVS + 1, 4);
-	int i = 0;
-	for (; i < nbenvs; i++)
+	ctx->env = calloc(nbenvs + NUMENVS + 1, sizeof(char *));
+	for (int i = 0; i < nbenvs; i++)
 	{
 		ctx->env[i + NUMENVS] = strdup(env[i]);
 	}
-	ctx->env[i + NUMENVS] = NULL;
+	ctx->env[nbenvs + NUMENVS] = NULL;
 	return ctx;
 }
 
@@ -120,25 +119,25 @@ void exec_run(void *arg, int chipid, int gpioid, struct gpiod_line_event *event)
 # define STRDUP strdup
 #endif
 
-		int i = 0;
+		int argc = 0;
 		char *argv[10];
-		argv[i] =  STRDUP(ctx->cgipath);
-		i++;
-		while ( i < 10 && argv[i - 1] != NULL)
+		argv[argc] =  STRDUP(ctx->cgipath);
+		argc++;
+		while ( argc < 10 && argv[argc - 1] != NULL)
 		{
-			argv[i] = strchr(argv[i - 1], ' ');
-			if (argv[i] != NULL)
+			argv[argc] = strchr(argv[argc - 1], ' ');
+			if (argv[argc] != NULL)
 			{
-				*argv[i] = '\0';
-				argv[i]++;
+				*argv[argc] = '\0';
+				argv[argc]++;
 			}
-			i++;
+			argc++;
 		}
 
 		char **env = ctx->env;
-		env[0] = STRNDUP(str_GPIOENV, sizeof(str_GPIOENV));
+		env[0] = STRDUP(str_GPIOENV);
 		sprintf(env[0], str_GPIOENV, gpiod_line(gpioid));
-		env[1] = STRNDUP(str_CHIPENV, sizeof(str_CHIPENV));
+		env[1] = STRDUP(str_CHIPENV);
 		sprintf(env[1], str_CHIPENV, chipid);
 		const char *gpioname = NULL;
 		env[2] = malloc(25);
@@ -153,8 +152,8 @@ void exec_run(void *arg, int chipid, int gpioid, struct gpiod_line_event *event)
 			eventstr = str_rising;
 		else
 			eventstr = str_falling;
-		env[3] = malloc(sizeof(str_ACTIONENV));
-		sprintf(env[1], str_ACTIONENV, eventstr);
+		env[3] = malloc(sizeof(str_ACTIONENV) + sizeof(str_falling));
+		sprintf(env[3], str_ACTIONENV, eventstr);
 
 		setbuf(stdout, 0);
 		sched_yield();
