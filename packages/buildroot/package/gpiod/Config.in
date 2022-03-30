@@ -9,6 +9,10 @@ config BR2_PACKAGE_GPIOD
 	  The daemon loads rules defining a gpio and
 	  the scripts to launch when the level of gpio changes.
 
+config BR2_PACKAGE_GPIOD_EXAMPLES
+	bool "install example rule files"
+	depends on BR2_PACKAGE_GPIOD
+
 comment "gpiod needs a toolchain w/ kernel headers >= 4.8"
 	depends on !BR2_USE_MMU
 	depends on !BR2_TOOLCHAIN_HEADERS_AT_LEAST_4_8

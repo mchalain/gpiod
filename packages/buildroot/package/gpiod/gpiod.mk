@@ -16,9 +16,17 @@ GPIOD_MAKE_OPTS = \
 	prefix=$(PREFIX) \
 	sysconfdir=$(SYSCONFDIR)
 
+#GPIOD_MAKE_OPTS+=DEBUG=y
+#GPIOD_MAKE_OPTS+=V=1
+
 GPIOD_DEPENDENCIES = \
 	libgpiod \
 	libconfig
+
+define GPIOD_INSTALL_EXAMPLES
+	$(INSTALL) -D -m 644 $(@D)/rules.d/10_rfkill.conf $(TARGET_DIR)/etc/gpiod/rules.d/10_rfkill.conf
+	$(INSTALL) -D -m 644 $(@D)/rules.d/10_poweroff.conf $(TARGET_DIR)/etc/gpiod/rules.d/10_poweroff.conf
+endef
 
 define GPIOD_CONFIGURE_CMDS
 	$(TARGET_CONFIGURE_OPTS) $(TARGET_MAKE_ENV) \
@@ -48,5 +56,9 @@ define GPIOD_INSTALL_INIT_SYSV
 	$(INSTALL) -D -m 755 $(@D)/S20gpiod \
 		$(TARGET_DIR)/etc/init.d/S20gpiod
 endef
+
+ifeq ($(BR2_PACKAGE_GPIOD_EXAMPLES),y)
+GPIOD_POST_INSTALL_TARGET_HOOKS += GPIOD_INSTALL_EXAMPLES
+endif
 
 $(eval $(generic-package))
