@@ -84,6 +84,33 @@ static void *rules_exportrule(int gpioid, config_setting_t *export)
 	return ctx;
 }
 
+static int _rules_get_inputoptions(config_setting_t *gpiosetting)
+{
+	int options = 0;
+#ifdef GPIOD_DEFAULT_PULL_UP
+	options |= GPIOD_LINE_OPTION_PULL_UP;
+#endif
+	int ret = CONFIG_FALSE;
+	int pull = 0;
+
+	ret = config_setting_lookup_bool(gpiosetting, "pull_up", &pull);
+	if (ret == CONFIG_TRUE)
+	{
+		if (pull)
+			options |= GPIOD_LINE_OPTION_PULL_UP;
+		else
+			options &= ~GPIOD_LINE_OPTION_PULL_UP;
+	}
+	else
+	{
+		pull = 0;
+		config_setting_lookup_bool(gpiosetting, "pull_down", &pull);
+		if (pull)
+			options |= GPIOD_LINE_OPTION_PULL_DOWN;
+	}
+	return options;
+}
+
 int rules_getgpio(config_setting_t *gpiosetting, int chipid, struct gpiod_chip *chiphandle, const char *name)
 {
 	int gpioid = -1;
@@ -114,6 +141,11 @@ int rules_getgpio(config_setting_t *gpiosetting, int chipid, struct gpiod_chip *
 			config_setting_lookup_bool(gpiosetting, "output", &output);
 			if (output)
 				options |= GPIOD_LINE_OPTION_OUTPUT;
+
+			if (!default_direction && !output)
+			{
+				options |= _rules_get_inputoptions(gpiosetting);
+			}
 		}
 
 		if (line > -1 && chiphandle != NULL)
@@ -343,7 +375,8 @@ void rules_setroot(char *rootpath)
 int rules_parse(const char *filepath)
 {
 	int ret = -1;
-	config_t configfile;
+	config_t configfile = {0};
+	memset(&configfile, 0, sizeof(configfile));
 
 	config_init(&configfile);
 	ret = config_read_file(&configfile, filepath);

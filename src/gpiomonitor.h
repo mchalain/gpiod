@@ -34,8 +34,11 @@
 #define MAX_GPIOS 64
 #endif
 
+#define GPIOD_LINE_OPTION_INPUT 0x00
 #define GPIOD_LINE_OPTION_DEFAULT 0x01
 #define GPIOD_LINE_OPTION_OUTPUT 0x02
+#define GPIOD_LINE_OPTION_PULL_UP 0x04
+#define GPIOD_LINE_OPTION_PULL_DOWN 0x08
 
 typedef void (*handler_t)(void *ctx, int chipid, int line, struct gpiod_line_event *event);
 typedef void (*free_ctx_t)(void *ctx);

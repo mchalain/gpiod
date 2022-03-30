@@ -152,6 +152,7 @@ int gpiod_setline(int chipid, struct gpiod_line *handle, const char *name, int o
 	gpio->handle = handle;
 	gpio->config.consumer = str_gpiod;
 	gpio->config.request_type = GPIOD_LINE_REQUEST_EVENT_BOTH_EDGES;
+	gpio->config.flags = 0;
 	if ((options & GPIOD_LINE_OPTION_DEFAULT) &&
 		(gpiod_line_direction(handle) == GPIOD_LINE_DIRECTION_OUTPUT))
 	{
@@ -162,7 +163,14 @@ int gpiod_setline(int chipid, struct gpiod_line *handle, const char *name, int o
 		warn("gpiod: gpio %d output direction", gpiod_line_offset(gpio->handle));
 		gpio->config.request_type = GPIOD_LINE_REQUEST_DIRECTION_OUTPUT;
 	}
-	gpio->config.flags = 0;
+	else if (options & GPIOD_LINE_OPTION_PULL_UP)
+	{
+		gpio->config.flags |= GPIOD_LINE_REQUEST_FLAG_BIAS_PULL_UP;
+	}
+	else if (options & GPIOD_LINE_OPTION_PULL_DOWN)
+	{
+		gpio->config.flags |= GPIOD_LINE_REQUEST_FLAG_BIAS_PULL_DOWN;
+	}
 
 	if (gpiod_line_request(gpio->handle, &gpio->config, 0) < 0)
 	{
@@ -261,6 +269,16 @@ int gpiod_state(int gpioid)
 	if (gpio == NULL)
 		return -1;
 	return gpiod_line_get_value(gpio->handle);
+}
+
+int gpiod_output(int gpioid, int value)
+{
+	gpio_t *gpio = gpiod_search(gpioid);
+	if (gpio == NULL)
+		return -1;
+	if (gpio->config.request_type == GPIOD_LINE_REQUEST_DIRECTION_OUTPUT)
+		return gpiod_line_set_value(gpio->handle, value);
+	return -1;
 }
 
 int gpiod_chipid(int gpioid)
